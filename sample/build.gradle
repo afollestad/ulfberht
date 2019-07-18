@@ -1,0 +1,13 @@
+apply from: "../javaapp-withkapt.gradle"
+
+kapt.includeCompileClasspath = false
+
+dependencies {
+  implementation project(":core")
+  kapt project(":processor")
+
+  implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${versions.kotlin}"
+  implementation "org.jetbrains.kotlin:kotlin-reflect:${versions.kotlin}"
+}
+
+apply from: "../spotless.gradle"

@@ -1,0 +1,4 @@
+apply plugin: 'java-library'
+apply plugin: 'kotlin'
+apply from: '../dependencies.gradle'
+apply from: "../sourcesets.gradle"

@@ -1,0 +1,30 @@
+apply from: "../javalib-nokapt.gradle"
+
+ext.artifactId = "ulfberht"
+apply from: "../bintrayconfig.gradle"
+
+afterEvaluate {
+  if (modulePackageId != null && modulePackageId != '') {
+    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+      kotlinOptions {
+        freeCompilerArgs += ['-module-name', modulePackageId]
+      }
+    }
+  } else {
+    logger.warn('Skipping setting compiler module name, no package to use.')
+  }
+}
+
+dependencies {
+  api project(":annotations")
+
+  api "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${versions.kotlin}"
+  api "org.jetbrains.kotlin:kotlin-reflect:${versions.kotlin}"
+  
+  testImplementation "junit:junit:${versions.junit}"
+  testImplementation "org.mockito:mockito-core:${versions.mockito}"
+  testImplementation "com.nhaarman.mockitokotlin2:mockito-kotlin:${versions.mockitoKotlin}"
+  testImplementation "com.google.truth:truth:${versions.truth}"
+}
+
+apply from: "../spotless.gradle"

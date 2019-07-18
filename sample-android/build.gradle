@@ -1,0 +1,38 @@
+apply from: '../dependencies.gradle'
+
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-kapt'
+
+android {
+  compileSdkVersion versions.compileSdk
+  buildToolsVersion versions.buildTools
+
+  compileOptions {
+    sourceCompatibility 1.8
+    targetCompatibility 1.8
+  }
+
+  defaultConfig {
+    applicationId "com.afollestad.statemachinesample"
+    minSdkVersion versions.minSdk
+    targetSdkVersion versions.compileSdk
+    versionCode versions.publishVersionCode
+    versionName versions.publishVersion
+  }
+
+  sourceSets {
+    main.kotlin.srcDirs += "src/main/kotlin"
+    main.java.srcDirs += "src/main/kotlin"
+  }
+}
+
+dependencies {
+  implementation project(':core-android')
+  kapt project(':processor')
+
+  implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:' + versions.kotlin
+  implementation 'androidx.appcompat:appcompat:' + versions.androidxCore
+}
+
+apply from: '../spotless.gradle'

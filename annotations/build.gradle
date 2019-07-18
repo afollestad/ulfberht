@@ -1,0 +1,17 @@
+apply from: "../javalib-nokapt.gradle"
+
+def artifactId = "ulfberht-annotations"
+
+afterEvaluate {
+  tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+    kotlinOptions {
+      freeCompilerArgs += ['-module-name', artifactId]
+    }
+  }
+}
+
+dependencies {
+  api "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${versions.kotlin}"
+}
+
+apply from: "../spotless.gradle"

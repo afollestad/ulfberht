@@ -1,0 +1,15 @@
+apply from: "../javalib-withkapt.gradle"
+
+ext.artifactId = "ulfbert-processor"
+apply from: "../bintrayconfig.gradle"
+
+dependencies {
+  implementation project(":core")
+  implementation project(":annotations")
+
+  implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${versions.kotlin}"
+  implementation "org.jetbrains.kotlin:kotlin-reflect:${versions.kotlin}"
+  implementation "com.squareup:kotlinpoet:${versions.kotlinPoet}"
+}
+
+apply from: "../spotless.gradle"
