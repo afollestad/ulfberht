@@ -63,7 +63,7 @@ class DemoImpl : Demo {
 
 @Module
 interface DemoModule {
-  @Binds fun demoClass(impl: DemoImpl): Impl
+  @Binds fun demoClass(impl: DemoImpl): Demo
 }
 ```
 
@@ -86,7 +86,7 @@ class DemoImpl(val somethingElse: SomethingElse) : Demo {
 @Module
 interface DemoModule {
   @Binds
-  fun demoClass(impl: DemoImpl): Impl
+  fun demoClass(impl: DemoImpl): Demo
   
   @Binds
   fun somethingElse(impl: SomethingElseImpl): SomethingElse
