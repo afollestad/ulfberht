@@ -63,7 +63,7 @@ class DemoImpl : Demo {
 
 @Module
 interface DemoModule {
-  @Binds fun demoClass(impl: DemoImpl): Impl
+  @Binds fun demoClass(impl: DemoImpl): Demo
 }
 ```
 
@@ -77,7 +77,9 @@ class SomethingElseImpl : SomethingElse
 interface Demo {
   fun myMethod()
 }
-class DemoImpl(val somethingElse: SomethingElse) : Demo {
+class DemoImpl(
+  val somethingElse: SomethingElse
+) : Demo {
   override fun myMethod() {
     ...
   }
@@ -86,7 +88,7 @@ class DemoImpl(val somethingElse: SomethingElse) : Demo {
 @Module
 interface DemoModule {
   @Binds
-  fun demoClass(impl: DemoImpl): Impl
+  fun demoClass(impl: DemoImpl): Demo
   
   @Binds
   fun somethingElse(impl: SomethingElseImpl): SomethingElse
@@ -104,7 +106,9 @@ a module which can use `@Provides` must be a `abstract class` rather than an `in
 
 ```kotlin
 class SomethingElse
-class Demo(val somethingElse: SomethingElse) {
+class Demo(
+  val somethingElse: SomethingElse
+) {
   fun myMethod() {
     ...
   }
@@ -124,7 +128,9 @@ as well. This could be a dependency provided in another module or even another c
 
 ```kotlin
 class SomethingElse
-class Demo(val somethingElse: SomethingElse)
+class Demo(
+  val somethingElse: SomethingElse
+)
  
 @Module
 interface DemoModule {
@@ -244,7 +250,10 @@ there's a simple parameter to add on the `@Component` annotation.
 // Using constants is encouraged so you can share values throughout your app.
 const val FIRST_SCOPE = "first scope"
 
-@Component(scope = FIRST_SCOPE, modules = [MyModule::class])
+@Component(
+  scope = FIRST_SCOPE, 
+  modules = [MyModule::class]
+)
 interface MyComponent
 ```
 
@@ -443,12 +452,14 @@ interface MainComponent {
   fun inject(activity: MainActivity)
 }
 
+// ...now you can use them in your Android code
 
 class LoginActivity : AppCompatActivity() {
   
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     component<LoginComponent>().inject(this)
+    
     // attachScope is an extension method on `LifecycleOwner`
     attachScope(ScopeNames.LOGIN_SCOPE)
   }
