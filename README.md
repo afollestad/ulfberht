@@ -423,6 +423,10 @@ You can then attach scopes to Android `LifecycleOwner`'s, including:
 * `AppCompatActivity`/`FragmentActivity`
 * `ViewModel`
 
+---
+
+First, setup your components and modules as you would normally:
+
 ```kotlin
 object ScopeNames {
   const val LOGIN_SCOPE = "scope_login"
@@ -451,16 +455,19 @@ interface LoginComponent {
 interface MainComponent {
   fun inject(activity: MainActivity)
 }
+```
 
-// ...now you can use them in your Android code
+Now, you can use them in your Android code:
 
+```kotlin
 class LoginActivity : AppCompatActivity() {
   
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     component<LoginComponent>().inject(this)
     
-    // attachScope is an extension method on `LifecycleOwner`
+    // attachScope is an extension method on `LifecycleOwner`, so it can be used 
+    // in Activities, Fragments, ViewModels, etc.
     attachScope(ScopeNames.LOGIN_SCOPE)
   }
 }
