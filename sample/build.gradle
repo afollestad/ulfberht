@@ -1,4 +1,4 @@
-apply from: "../javaapp-withkapt.gradle"
+apply from: "../gradle/javaapp-withkapt.gradle"
 
 kapt.includeCompileClasspath = false
 

@@ -1,4 +1,4 @@
-apply from: "../javalib-withkapt.gradle"
+apply from: "../gradle/javalib-withkapt.gradle"
 
 ext.artifactId = "ulfbert-processor"
 apply from: "../bintrayconfig.gradle"

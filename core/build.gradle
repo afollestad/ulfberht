@@ -1,4 +1,4 @@
-apply from: "../javalib-nokapt.gradle"
+apply from: "../gradle/javalib-nokapt.gradle"
 
 ext.artifactId = "ulfberht"
 apply from: "../bintrayconfig.gradle"
