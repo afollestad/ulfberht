@@ -137,7 +137,7 @@ interface DemoModule {
   @Provides fun demoClass(
     somethingElse: SomethingElse
   ): Demo {
-    return Demo(somethingElse
+    return Demo(somethingElse)
   }
   
   @Provides fun somethingElse(): SomethingElse {
