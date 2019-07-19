@@ -24,7 +24,7 @@
     2. [Parenting](#parenting)
     4. [Scoping](#scoping)
 4. [Injection](#injection)
-5. [Android Extensions](#android-extensions)
+5. [Android Scoping](#android-scoping)
 
 ---
  
@@ -406,22 +406,13 @@ class SomeClass {
 
 ---
 
-# Android Extensions
+# Android Scoping
 
-Extensions are provided to make scope management more convenient on Android. There's another 
-Gradle dependency that you must include:
-
-```gradle
-dependencies {
-  ...
-  implementation "com.afollestad:ulfberht-android:0.0.1-beta"
-}
-```
-
-You can then attach scopes to Android `LifecycleOwner`'s, including:
+On Android, you can automatically attach scopes to `LifecycleOwner`'s, such as:
 * `Fragment` (from `androidx.app`)
 * `AppCompatActivity`/`FragmentActivity`
 * `ViewModel`
+_(these all implement the `LifecycleOwner` interface)_
 
 ---
 
@@ -457,18 +448,17 @@ interface MainComponent {
 }
 ```
 
-Now, you can use them in your Android code:
+Then, you annotate your `LifecycleOwner`'s with the `ScopeOwner` annotation:
 
 ```kotlin
+@ScopeOwner(LOGIN_SCOPE)
 class LoginActivity : AppCompatActivity() {
   
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     component<LoginComponent>().inject(this)
-    
-    // attachScope is an extension method on `LifecycleOwner`, so it can be used 
-    // in Activities, Fragments, ViewModels, etc.
-    attachScope(ScopeNames.LOGIN_SCOPE)
   }
 }
 ```
+
+When the Activity is destroyed, its component will be as well - automatically.

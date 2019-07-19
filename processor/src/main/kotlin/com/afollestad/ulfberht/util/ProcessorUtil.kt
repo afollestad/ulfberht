@@ -18,6 +18,7 @@ package com.afollestad.ulfberht.util
 import com.afollestad.ulfberht.annotation.Inject
 import com.afollestad.ulfberht.annotation.Param
 import com.afollestad.ulfberht.util.Names.MODULES_LIST_NAME
+import com.afollestad.ulfberht.util.Types.LIFECYCLE_OWNER
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.asTypeName
@@ -178,9 +179,23 @@ internal object ProcessorUtil {
         }
   }
 
+  fun TypeElement.isLifecycleOwner(): Boolean {
+    if (asType().toString() == "java.lang.Object") {
+      return false
+    }
+    return interfaces.any { it.toString() == LIFECYCLE_OWNER.toString() } ||
+        superclass.asTypeElement().isLifecycleOwner()
+  }
+
   val AnnotationMirror?.qualifier: String?
     get() {
       val qualifier: String = this?.getParameter("qualifier") ?: return null
+      return if (qualifier.isEmpty()) null else qualifier
+    }
+
+  val AnnotationMirror?.name: String?
+    get() {
+      val qualifier: String = this?.getParameter("name") ?: return null
       return if (qualifier.isEmpty()) null else qualifier
     }
 }

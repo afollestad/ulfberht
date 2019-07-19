@@ -19,14 +19,15 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.afollestad.ulfberht.android.attachScope
 import com.afollestad.ulfberht.annotation.Inject
+import com.afollestad.ulfberht.annotation.ScopeOwner
 import com.afollestad.ulfberht.component
 import com.afollestad.ulfberhtsample.ScopeNames.MAIN
 import com.afollestad.ulfberhtsample.api.Client
 import com.afollestad.ulfberhtsample.api.Session
 import com.afollestad.ulfberhtsample.login.LoginActivity
 
+@ScopeOwner(MAIN)
 class MainActivity : AppCompatActivity() {
   @Inject lateinit var session: Session
   @Inject lateinit var client: Client
@@ -34,8 +35,6 @@ class MainActivity : AppCompatActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     component<MainComponent>().inject(this)
-    attachScope(MAIN)
-
     // TODO use client
   }
 

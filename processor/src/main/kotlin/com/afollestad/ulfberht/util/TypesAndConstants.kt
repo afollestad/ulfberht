@@ -21,6 +21,7 @@ import com.afollestad.ulfberht.common.BaseModule
 import com.afollestad.ulfberht.common.BaseModule.SingletonProvider
 import com.afollestad.ulfberht.common.BaseModule.OnDemandProvider
 import com.afollestad.ulfberht.common.Logger
+import com.afollestad.ulfberht.scopes.Scope
 import com.afollestad.ulfberht.util.ProcessorUtil.asNullableTypeName
 import com.squareup.kotlinpoet.ANY
 import com.squareup.kotlinpoet.AnnotationSpec
@@ -59,15 +60,11 @@ internal object Types {
   val REIFIED_TYPE_VARIABLE_T = TYPE_VARIABLE_T.copy(reified = true)
 
   private val KCLASS = KClass::class.asTypeName()
-  val KCLASS_OF_T = KCLASS.parameterizedBy(
-      TYPE_VARIABLE_T
-  )
+  val KCLASS_OF_T = KCLASS.parameterizedBy(TYPE_VARIABLE_T)
   val KCLASS_OF_ANY = KCLASS.parameterizedBy(STAR)
 
   val PROVIDER = Provider::class.asTypeName()
-  val PROVIDER_OF_T = PROVIDER.parameterizedBy(
-      TYPE_VARIABLE_T
-  )
+  val PROVIDER_OF_T = PROVIDER.parameterizedBy(TYPE_VARIABLE_T)
   val PROVIDER_OF_T_NULLABLE = PROVIDER_OF_T.copy(nullable = true)
   val PROVIDER_OF_ANY = PROVIDER.parameterizedBy(STAR)
 
@@ -81,6 +78,12 @@ internal object Types {
   val PUBLISHED_API = PublishedApi::class.asTypeName()
 
   val LOGGER = Logger::class.asTypeName()
+  val LIFECYCLE_OWNER = ClassName("androidx.lifecycle", "LifecycleOwner")
+  val LIFECYCLE_OBSERVER = ClassName("androidx.lifecycle", "LifecycleObserver")
+  val SCOPE = Scope::class.asTypeName()
+  val GET_SCOPE_METHOD = ClassName("com.afollestad.ulfberht", "getScope")
+  val ON_LIFECYCLE_EVENT = ClassName("androidx.lifecycle", "OnLifecycleEvent")
+  val LIFECYCLE_EVENT_ON_DESTROY = ClassName("androidx.lifecycle.Lifecycle.Event", "ON_DESTROY")
 }
 
 /** @author Aidan Follestad (@afollestad) */

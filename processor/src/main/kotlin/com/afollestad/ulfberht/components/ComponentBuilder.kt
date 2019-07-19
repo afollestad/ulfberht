@@ -30,6 +30,7 @@ import com.afollestad.ulfberht.util.Types.PROVIDER_OF_T_NULLABLE
 import com.afollestad.ulfberht.util.Types.PUBLISHED_API
 import com.afollestad.ulfberht.util.Types.TYPE_VARIABLE_T
 import com.afollestad.ulfberht.annotation.Component
+import com.afollestad.ulfberht.annotation.ScopeOwner
 import com.afollestad.ulfberht.util.Names.DESTROY_METHOD_NAME
 import com.afollestad.ulfberht.util.Names.GET_PROVIDER_NAME
 import com.afollestad.ulfberht.util.Names.MODULES_LIST_NAME
@@ -62,6 +63,13 @@ import com.afollestad.ulfberht.util.ProcessorUtil.getPackage
 import com.afollestad.ulfberht.util.ProcessorUtil.getParameter
 import com.afollestad.ulfberht.util.ProcessorUtil.asFileName
 import com.afollestad.ulfberht.util.ProcessorUtil.getModulesTypes
+import com.afollestad.ulfberht.util.ProcessorUtil.name
+import com.afollestad.ulfberht.util.ProcessorUtil.isLifecycleOwner
+import com.afollestad.ulfberht.util.Types.GET_SCOPE_METHOD
+import com.afollestad.ulfberht.util.Types.LIFECYCLE_EVENT_ON_DESTROY
+import com.afollestad.ulfberht.util.Types.LIFECYCLE_OBSERVER
+import com.afollestad.ulfberht.util.Types.ON_LIFECYCLE_EVENT
+import com.afollestad.ulfberht.util.Types.SCOPE
 
 internal class ComponentBuilder(
   private val environment: ProcessingEnvironment
@@ -243,6 +251,24 @@ internal class ComponentBuilder(
         code.addStatement(
             "$paramName.%N = get(%T::class)",
             field.simpleName.toString(), field.getFieldTypeName()
+        )
+      }
+    }
+
+    if (paramClass.isLifecycleOwner()) {
+      paramClass.getAnnotationMirror<ScopeOwner>()
+          .name?.let { ownedScope ->
+        code.add(
+            "\n" + """
+            val scope: %T = %T(%S)
+            $paramName.lifecycle.addObserver(object : %T {
+              @%T(%T)
+              fun onDestroy() = scope.exit()
+            })
+            """.trimIndent() + "\n",
+            SCOPE, GET_SCOPE_METHOD, ownedScope,
+            LIFECYCLE_OBSERVER,
+            ON_LIFECYCLE_EVENT, LIFECYCLE_EVENT_ON_DESTROY
         )
       }
     }

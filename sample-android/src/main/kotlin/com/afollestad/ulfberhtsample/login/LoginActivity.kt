@@ -17,13 +17,14 @@ package com.afollestad.ulfberhtsample.login
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import com.afollestad.ulfberht.android.attachScope
 import com.afollestad.ulfberht.annotation.Inject
+import com.afollestad.ulfberht.annotation.ScopeOwner
 import com.afollestad.ulfberht.component
 import com.afollestad.ulfberhtsample.ScopeNames.LOGIN
 import com.afollestad.ulfberhtsample.api.Authenticator
 import com.afollestad.ulfberhtsample.api.Session
 
+@ScopeOwner(LOGIN)
 class LoginActivity : AppCompatActivity() {
   @Inject lateinit var authenticator: Authenticator
   @Inject lateinit var session: Session
@@ -31,7 +32,6 @@ class LoginActivity : AppCompatActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     component<LoginComponent>().inject(this)
-    attachScope(LOGIN)
 
     authenticator.login("aidan", "hello")
     finish()
