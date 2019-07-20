@@ -265,10 +265,12 @@ internal class ComponentBuilder(
               @%T(%T)
               fun onDestroy() = scope.exit()
             })
+            %T.log(%P)
             """.trimIndent() + "\n",
             SCOPE, GET_SCOPE_METHOD, ownedScope,
             LIFECYCLE_OBSERVER,
-            ON_LIFECYCLE_EVENT, LIFECYCLE_EVENT_ON_DESTROY
+            ON_LIFECYCLE_EVENT, LIFECYCLE_EVENT_ON_DESTROY,
+            LOGGER, "$$paramName is now the owner of scope $ownedScope"
         )
       }
     }
