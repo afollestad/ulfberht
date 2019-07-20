@@ -9,22 +9,42 @@
 > remain unknown to the Vikings' rivals for centuries, the Ulfberht was a revolutionary high-tech 
 > tool as well as a work of art.
 
+*A little more bad-ass than a Dagger, huh?*
+
+Dependency injection is a technique in which an application supplies dependencies of an object. 
+"Dependencies" in this context doesn't necessarily mean dependencies like in a Gradle file. Dependencies 
+in this context are services (i.e. APIs, classes) that are needed in certain parts of your code.
+
+Dependency injection enables you to pass around objects without manual construction - it keeps track  
+of everything for you and injects services where they are needed.
+
 ---
 
 # Table of Contents - Core
 
-1. [Gradle Dependency](#gradle-dependency)
-2. [Modules](#modules)
+1. [Why Choose Ulfberht?](#why-choose-ulfberht)
+2. [Gradle Dependency](#gradle-dependency)
+3. [Modules](#modules)
     1. [Binding](#binding)
     2. [Providing](#providing)
     3. [Singletons](#singletons)
     4. [Qualifiers](#qualifiers)
-3. [Components](#components)
+4. [Components](#components)
     1. [Basics](#basics)
     2. [Parenting](#parenting)
     4. [Scoping](#scoping)
-4. [Injection](#injection)
-5. [Android Scoping](#android-scoping)
+5. [Injection](#injection)
+6. [Android Scoping](#android-scoping)
+
+---
+ 
+# Why Choose Ulfberht?
+
+I wrote Ulfberht as an experiment to see if I could make Dagger-style dependency injection a bit 
+easier and quicker to pickup for newbies. I wanted something lightweight, with less Boilerplate code 
+and more automation. I wanted something annotation-processor based rather than reflection-based, 
+while still being written in Kotlin. And I wanted better built-in scoping support, especially on 
+Android. This is the result.
 
 ---
  
@@ -51,32 +71,44 @@ should be straightforward.
 In this example below, we bind an interface with a concrete implementation. Whenever you inject 
 `Demo`, you inject the `DemoImpl` implementation of it.
 
+Taking this interface and implementation...
+
 ```kotlin
 interface Demo {
   fun myMethod()
 }
+
 class DemoImpl : Demo {
   override fun myMethod() {
     ...
   }
 }
+```
 
+...they can be bound in a `@Module` interface:
+
+```kotlin
 @Module
 interface DemoModule {
-  @Binds fun demoClass(impl: DemoImpl): Demo
+  @Binds 
+  fun demoClass(impl: DemoImpl): Demo
 }
 ```
 
+---
+
 If `DemoImpl` itself had dependencies in its constructor, those must be bound or provided as well 
-so that they can be injected too.
+so that they can be injected too...
 
 ```kotlin
 interface SomethingElse
+
 class SomethingElseImpl : SomethingElse
 
 interface Demo {
   fun myMethod()
 }
+
 class DemoImpl(
   val somethingElse: SomethingElse
 ) : Demo {
@@ -84,14 +116,22 @@ class DemoImpl(
     ...
   }
 }
+```
 
+...with a module setup like this:
+
+```kotlin
 @Module
 interface DemoModule {
   @Binds
-  fun demoClass(impl: DemoImpl): Demo
+  fun demoClass(
+    impl: DemoImpl
+  ): Demo
   
   @Binds
-  fun somethingElse(impl: SomethingElseImpl): SomethingElse
+  fun somethingElse(
+    impl: SomethingElseImpl
+  ): SomethingElse
 }
 ```
 
@@ -116,7 +156,8 @@ class Demo(
 
 @Module
 abstract class DemoModule {
-  @Provides fun demoClass(): Demo {
+  @Provides 
+  fun demoClass(): Demo {
     val somethingElse = SomethingElse()
     return Demo(somethingElse)
   }
@@ -134,13 +175,15 @@ class Demo(
  
 @Module
 interface DemoModule {
-  @Provides fun demoClass(
+  @Provides 
+  fun demoClass(
     somethingElse: SomethingElse
   ): Demo {
     return Demo(somethingElse)
   }
   
-  @Provides fun somethingElse(): SomethingElse {
+  @Provides 
+  fun somethingElse(): SomethingElse {
     return SomethingElse()
   }
 }
@@ -194,9 +237,12 @@ can inject into.
 ### Parenting
 
 A component can have a parent. A component's parent can also have a parent. As you chain 
-components together with parenting, you build a graph of object dependencies. 
+components together with parenting, you build a graph of object dependencies.
 
 <img src="https://github.com/afollestad/ulfberht/blob/master/art/component_diagram.png?raw=true" />
+
+When you inject something at the bottom of the chain, you're able to inject things that are bound 
+or provided throughout the chain all the way up to the top.
 
 It's as simple as adding a parameter to your `@Component` annotations.
 
@@ -461,4 +507,5 @@ class LoginActivity : AppCompatActivity() {
 }
 ```
 
-When the Activity is destroyed, its component will be as well - automatically.
+Since `LoginComponent` is being injected, _and_ because it is in the `LOGIN_SCOPE`, it will be 
+automatically destroyed when `LoginActivity` is. 
