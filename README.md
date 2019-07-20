@@ -371,8 +371,8 @@ class SomeClass {
   }
 }
 
-val application = SomeClass()
-application.doSomething()
+val someClass = SomeClass()
+someClass.doSomething()
 ```
 
 This code assumes that one of the modules going up the graph from `SomeComponent` can supply 
@@ -430,7 +430,8 @@ Third, `@Provides` method parameters take a qualifier also via the `@Param` anno
 ```kotlin
 @Module
 abstract class DemoModule2 {
-  @Provides fun demoClass1(
+  @Provides 
+  fun demoClass1(
     @Param(QUALIFIER_ONE) neededDependency: Demo2
   ): Demo1 {
     return Demo1Impl()
