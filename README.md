@@ -32,8 +32,8 @@
 
 ```gradle
 dependencies {
-  implementation "com.afollestad:ulfberht:0.0.1-alpha1"
-  kapt "com.afollestad:ulfbert-processor:0.0.1-alpha1"
+  implementation "com.afollestad:ulfberht:0.0.1-beta1"
+  kapt "com.afollestad:ulfbert-processor:0.0.1-beta1"
 }
 ```
 
