@@ -26,18 +26,15 @@ import com.afollestad.ulfberht.util.Types.LOGGER
 import com.afollestad.ulfberht.util.Types.NULLABLE_BASE_COMPONENT
 import com.afollestad.ulfberht.util.Types.NULLABLE_KOTLIN_STRING
 import com.afollestad.ulfberht.util.Types.PROVIDER_OF_T_NULLABLE
-import com.afollestad.ulfberht.util.Types.PUBLISHED_API
 import com.afollestad.ulfberht.util.Types.TYPE_VARIABLE_T
 import com.afollestad.ulfberht.annotation.Component
 import com.afollestad.ulfberht.annotation.ScopeOwner
-import com.afollestad.ulfberht.util.Names.DESTROY_METHOD_NAME
 import com.afollestad.ulfberht.util.Names.GET_PROVIDER_NAME
 import com.afollestad.ulfberht.util.Names.MODULES_LIST_NAME
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
-import com.squareup.kotlinpoet.KModifier.INTERNAL
 import com.squareup.kotlinpoet.KModifier.OVERRIDE
 import com.squareup.kotlinpoet.MUTABLE_SET
 import com.squareup.kotlinpoet.ParameterSpec
@@ -128,7 +125,6 @@ internal class ComponentBuilder(
             )
         )
         .addFunction(getProviderFunction(moduleTypes))
-        .addFunction(destroyFunction())
   }
 
   private fun propertyScope(value: String): PropertySpec {
@@ -193,8 +189,7 @@ internal class ComponentBuilder(
     }
 
     return PropertySpec.builder(MODULES_LIST_NAME, propertyType)
-        .addAnnotation(PUBLISHED_API)
-        .addModifiers(INTERNAL)
+        .addModifiers(OVERRIDE)
         .initializer(initializer)
         .build()
   }
@@ -299,22 +294,6 @@ internal class ComponentBuilder(
         .addModifiers(OVERRIDE)
         .addParameter(paramName, parameter.asType().asTypeName())
         .addCode(code.build())
-        .build()
-  }
-
-  private fun destroyFunction(): FunSpec {
-    return FunSpec.builder(DESTROY_METHOD_NAME)
-        .addModifiers(OVERRIDE)
-        .addCode(
-            CodeBlock.builder()
-                .addStatement("%N.forEach { it.%N() }", CHILDREN_NAME, DESTROY_METHOD_NAME)
-                .addStatement("%N.forEach { it.%N() }", MODULES_LIST_NAME, DESTROY_METHOD_NAME)
-                .addStatement(
-                    "%T.log(%P)", LOGGER,
-                    "Destroyed component \${$ORIGINAL_TYPE_NAME.qualifiedName}"
-                )
-                .build()
-        )
         .build()
   }
 

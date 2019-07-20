@@ -26,6 +26,7 @@ interface BaseComponent : ScopeObserver {
   val originalType: KClass<*>
   val parent: BaseComponent?
   val children: MutableSet<BaseComponent>
+  val modules: Set<BaseModule>
 
   fun <T : Any> get(
     wantedType: KClass<T>,
@@ -44,7 +45,11 @@ interface BaseComponent : ScopeObserver {
     calledBy: BaseComponent? = null
   ): Provider<T>?
 
-  fun destroy()
+  fun destroy() {
+    children.forEach { it.destroy() }
+    modules.forEach { it.destroy() }
+    Logger.log("Destroyed component ${originalType.qualifiedName}")
+  }
 
   override fun onExit() = destroy()
 }
