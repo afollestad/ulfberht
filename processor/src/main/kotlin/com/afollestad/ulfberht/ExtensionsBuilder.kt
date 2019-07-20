@@ -21,7 +21,6 @@ import com.afollestad.ulfberht.util.Names.LIBRARY_PACKAGE
 import com.afollestad.ulfberht.util.Names.PROVIDER_EXTENSION_NAME
 import com.afollestad.ulfberht.util.Names.SINGLETON_PROVIDER_EXTENSION_NAME
 import com.afollestad.ulfberht.util.Types.BASE_MODULE
-import com.afollestad.ulfberht.util.Types.LOGGER
 import com.afollestad.ulfberht.util.Types.PROVIDER_OF_T
 import com.afollestad.ulfberht.util.Types.REIFIED_TYPE_VARIABLE_T
 import com.afollestad.ulfberht.util.Types.SINGLETON_PROVIDER
@@ -83,16 +82,12 @@ internal class ExtensionsBuilder(
                 """
                 val key: String = %T::class.qualifiedName!!
                 if ($CACHED_PROVIDERS_NAME.containsKey(key)) {
-                  %T.log(%P)
                   return $CACHED_PROVIDERS_NAME[key] as %T
                 }
-                %T.log(%P)
                 return %T(block).also { $CACHED_PROVIDERS_NAME[key] = it }
                 """.trimIndent() + "\n",
                 REIFIED_TYPE_VARIABLE_T,
-                LOGGER, "Got \$key from the provider cache.",
                 PROVIDER_OF_T,
-                LOGGER, "Instantiated new instance of \$key.",
                 SINGLETON_PROVIDER
             )
         )
