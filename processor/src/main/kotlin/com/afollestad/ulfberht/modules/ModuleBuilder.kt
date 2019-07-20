@@ -41,6 +41,7 @@ import com.afollestad.ulfberht.util.ProcessorUtil.hasAnnotationMirror
 import com.afollestad.ulfberht.util.ProcessorUtil.isAbstractClass
 import com.afollestad.ulfberht.util.ProcessorUtil.qualifier
 import com.afollestad.ulfberht.util.ProcessorUtil.asFileName
+import com.afollestad.ulfberht.util.ProcessorUtil.error
 import com.afollestad.ulfberht.util.Types.BASE_COMPONENT
 import com.afollestad.ulfberht.util.Types.BASE_MODULE
 import com.afollestad.ulfberht.util.Types.KCLASS_OF_T
@@ -76,8 +77,11 @@ internal class ModuleBuilder(
   private var haveSingletons: Boolean = false
 
   fun generate(element: Element) {
-    check(element.kind == INTERFACE || element.isAbstractClass()) {
-      "@Module annotation can only decorate interfaces or abstract classes."
+    if (element.kind != INTERFACE && !element.isAbstractClass()) {
+      environment.error(
+          "$element: @Module annotation can only decorate interfaces or abstract classes."
+      )
+      return
     }
     haveNonSingletons = false
     haveSingletons = false
@@ -94,16 +98,19 @@ internal class ModuleBuilder(
         .forEach { method ->
           val bindsAnnotation = method.getAnnotationMirror<Binds>()
           bindsAnnotation?.let {
-            check(element.kind == INTERFACE) {
-              "@Binds methods can only be used in an interface."
+            if (element.kind != INTERFACE) {
+              environment.error("$method: @Binds methods can only be used in an interface.")
+              return@generate
             }
-            typeBuilder.addFunction(bindsFunction(method, providedTypeMethodNameMap))
+            bindsFunction(method, providedTypeMethodNameMap)
+                ?.let { typeBuilder.addFunction(it) }
             return@forEach
           }
           val providesAnnotation = method.getAnnotationMirror<Provides>()
           providesAnnotation?.let {
-            check(element.isAbstractClass()) {
-              "@Provides methods can only be used in an abstract class."
+            if (!element.isAbstractClass()) {
+              environment.error("$method: @Provides methods can only be used in an abstract class.")
+              return@generate
             }
             typeBuilder.addFunction(providesFunction(method, providedTypeMethodNameMap))
             return@forEach
@@ -168,7 +175,8 @@ internal class ModuleBuilder(
   private fun getProviderFunction(
     providedTypeMethodNameMap: MutableMap<TypeName, MethodNameAndQualifier>
   ): FunSpec {
-    val code = CodeBlock.builder().add("return when {\n")
+    val code = CodeBlock.builder()
+        .add("return when {\n")
 
     for ((key, value) in providedTypeMethodNameMap) {
       if (value.qualifier != null) {
@@ -206,17 +214,23 @@ internal class ModuleBuilder(
   private fun bindsFunction(
     method: ExecutableElement,
     providedTypeMethodNameMap: MutableMap<TypeName, MethodNameAndQualifier>
-  ): FunSpec {
-    require(method.parameters.size == 1) {
-      "@Binds methods must have a single parameter."
+  ): FunSpec? {
+    if (method.parameters.size != 1) {
+      environment.error(
+          "$method: @Binds methods must have a single parameter."
+      )
+      return null
     }
     val parameter = method.parameters.single()
     val parameterType = parameter.asType()
     val returnType = method.returnType
 
-    require(environment.typeUtils.isSubtype(parameterType, returnType)) {
-      "@Binds method ${method.simpleName}() parameter of type " +
-          "$parameterType must be a subclass of $returnType"
+    if (!environment.typeUtils.isSubtype(parameterType, returnType)) {
+      environment.error(
+          "@Binds method ${method.simpleName}() parameter of type " +
+              "$parameterType must be a subclass of $returnType"
+      )
+      return null
     }
 
     val correctedReturnType = returnType.correct()

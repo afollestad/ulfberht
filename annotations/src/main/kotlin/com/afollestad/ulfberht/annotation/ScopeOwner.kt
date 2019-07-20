@@ -19,4 +19,4 @@ package com.afollestad.ulfberht.annotation
 
 @Retention(AnnotationRetention.SOURCE)
 @Target(AnnotationTarget.CLASS)
-annotation class ScopeOwner(val name: String = "")
+annotation class ScopeOwner(val name: String)

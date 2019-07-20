@@ -64,6 +64,7 @@ import com.afollestad.ulfberht.util.ProcessorUtil.asFileName
 import com.afollestad.ulfberht.util.ProcessorUtil.getModulesTypes
 import com.afollestad.ulfberht.util.ProcessorUtil.name
 import com.afollestad.ulfberht.util.ProcessorUtil.isLifecycleOwner
+import com.afollestad.ulfberht.util.ProcessorUtil.error
 import com.afollestad.ulfberht.util.Types.GET_SCOPE_METHOD
 import com.afollestad.ulfberht.util.Types.LIFECYCLE_EVENT_ON_DESTROY
 import com.afollestad.ulfberht.util.Types.LIFECYCLE_OBSERVER
@@ -77,9 +78,13 @@ internal class ComponentBuilder(
   private lateinit var fullClassName: ClassName
 
   fun generate(element: Element) {
-    check(element.kind == INTERFACE) {
-      "@Component annotation can only decorate an interface."
+    if (element.kind != INTERFACE) {
+      environment.error(
+          "${element.simpleName}: @Component annotation can only decorate an interface."
+      )
+      return
     }
+
     val pkg = element.getPackage(environment)
     fullClassName = element.getFullClassName(environment, pkg)
 
@@ -92,7 +97,10 @@ internal class ComponentBuilder(
     element.enclosedElements
         .filterMethods()
         .filter { it.simpleName.toString() == INJECT_METHOD_NAME }
-        .forEach { typeBuilder.addFunction(injectFunction(it)) }
+        .forEach { method ->
+          injectFunction(method)
+              ?.let { typeBuilder.addFunction(it) }
+        }
 
     val fileSpec = FileSpec.builder(pkg, fileName)
         .addType(typeBuilder.build())
@@ -228,11 +236,17 @@ internal class ComponentBuilder(
         .build()
   }
 
-  private fun injectFunction(method: ExecutableElement): FunSpec {
-    val parameter = method.parameters.single()
-    check(method.returnType.toString() == VOID_TYPE_NAME) {
-      "$INJECT_METHOD_NAME methods must have no return value."
+  private fun injectFunction(method: ExecutableElement): FunSpec? {
+    if (method.parameters.size != 1) {
+      environment.error("$method: $INJECT_METHOD_NAME() methods must have a single parameter.")
+      return null
     }
+    val parameter = method.parameters.single()
+    if (method.returnType.toString() != VOID_TYPE_NAME) {
+      environment.error("$method: $INJECT_METHOD_NAME() methods must have no return value.")
+      return null
+    }
+
     val paramName = parameter.simpleName.toString()
     val paramClass = parameter.asType()
         .asTypeElement()
@@ -255,11 +269,18 @@ internal class ComponentBuilder(
       }
     }
 
-    if (paramClass.isLifecycleOwner()) {
-      paramClass.getAnnotationMirror<ScopeOwner>()
-          .name?.let { ownedScope ->
-        code.add(
-            "\n" + """
+    val scopeOwner = paramClass.getAnnotationMirror<ScopeOwner>()
+    if (scopeOwner != null) {
+      if (!paramClass.isLifecycleOwner()) {
+        environment.error(
+            "$paramClass: @ScopeOwner can only be used on classes which implement LifecycleOwner."
+        )
+        return null
+      }
+
+      val ownedScope = scopeOwner.name
+      code.add(
+          "\n" + """
             val scope: %T = %T(%S)
             $paramName.lifecycle.addObserver(object : %T {
               @%T(%T)
@@ -267,12 +288,11 @@ internal class ComponentBuilder(
             })
             %T.log(%P)
             """.trimIndent() + "\n",
-            SCOPE, GET_SCOPE_METHOD, ownedScope,
-            LIFECYCLE_OBSERVER,
-            ON_LIFECYCLE_EVENT, LIFECYCLE_EVENT_ON_DESTROY,
-            LOGGER, "$$paramName is now the owner of scope $ownedScope"
-        )
-      }
+          SCOPE, GET_SCOPE_METHOD, ownedScope,
+          LIFECYCLE_OBSERVER,
+          ON_LIFECYCLE_EVENT, LIFECYCLE_EVENT_ON_DESTROY,
+          LOGGER, "$$paramName is now the owner of scope $ownedScope"
+      )
     }
 
     return FunSpec.builder(method.simpleName.toString())

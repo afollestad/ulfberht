@@ -38,6 +38,7 @@ import javax.lang.model.element.VariableElement
 import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.TypeKind.DECLARED
 import javax.lang.model.type.TypeMirror
+import javax.tools.Diagnostic.Kind.ERROR
 import kotlin.reflect.KClass
 
 /** @author Aidan Follestad (@afollestad) */
@@ -185,6 +186,10 @@ internal object ProcessorUtil {
     }
     return interfaces.any { it.toString() == LIFECYCLE_OWNER.toString() } ||
         superclass.asTypeElement().isLifecycleOwner()
+  }
+
+  fun ProcessingEnvironment.error(message: String) {
+    messager.printMessage(ERROR, message)
   }
 
   val AnnotationMirror?.qualifier: String?
