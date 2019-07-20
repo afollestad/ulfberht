@@ -17,15 +17,18 @@ package com.afollestad.ulfberht
 
 import com.afollestad.ulfberht.util.Annotations.SUPPRESS_UNCHECKED_CAST
 import com.afollestad.ulfberht.util.Names.CACHED_PROVIDERS_NAME
+import com.afollestad.ulfberht.util.Names.IS_SUBCLASS_OF_EXTENSION_NAME
 import com.afollestad.ulfberht.util.Names.LIBRARY_PACKAGE
 import com.afollestad.ulfberht.util.Names.PROVIDER_EXTENSION_NAME
 import com.afollestad.ulfberht.util.Names.SINGLETON_PROVIDER_EXTENSION_NAME
 import com.afollestad.ulfberht.util.Types.BASE_MODULE
+import com.afollestad.ulfberht.util.Types.KCLASS_OF_ANY
 import com.afollestad.ulfberht.util.Types.PROVIDER_OF_T
 import com.afollestad.ulfberht.util.Types.REIFIED_TYPE_VARIABLE_T
 import com.afollestad.ulfberht.util.Types.SINGLETON_PROVIDER
 import com.afollestad.ulfberht.util.Types.TYPE_VARIABLE_T
 import com.afollestad.ulfberht.util.Types.UNSCOPED_PROVIDER
+import com.squareup.kotlinpoet.BOOLEAN
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
@@ -47,10 +50,21 @@ internal class ExtensionsBuilder(
 ) {
   fun generate() {
     val fileSpec = FileSpec.builder(LIBRARY_PACKAGE, "_ProcessorExtensions")
+        .addFunction(isSubClassOfFunction())
         .addFunction(providerFunction())
         .addFunction(singletonProviderFunction())
         .build()
     fileSpec.writeTo(environment.filer)
+  }
+
+  private fun isSubClassOfFunction(): FunSpec {
+    return FunSpec.builder(IS_SUBCLASS_OF_EXTENSION_NAME)
+        .receiver(KCLASS_OF_ANY)
+        .addModifiers(INLINE, INTERNAL)
+        .addTypeVariable(REIFIED_TYPE_VARIABLE_T)
+        .addCode("return %T::class.java.isAssignableFrom(this::class.java)\n", TYPE_VARIABLE_T)
+        .returns(BOOLEAN)
+        .build()
   }
 
   private fun providerFunction(): FunSpec {

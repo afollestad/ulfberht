@@ -22,7 +22,6 @@ import com.afollestad.ulfberht.util.Types.BASE_COMPONENT
 import com.afollestad.ulfberht.util.Types.BASE_MODULE
 import com.afollestad.ulfberht.util.Types.KCLASS_OF_ANY
 import com.afollestad.ulfberht.util.Types.KCLASS_OF_T
-import com.afollestad.ulfberht.util.Types.KOTLIN_STRING
 import com.afollestad.ulfberht.util.Types.LOGGER
 import com.afollestad.ulfberht.util.Types.NULLABLE_BASE_COMPONENT
 import com.afollestad.ulfberht.util.Types.NULLABLE_KOTLIN_STRING
@@ -70,6 +69,7 @@ import com.afollestad.ulfberht.util.Types.LIFECYCLE_EVENT_ON_DESTROY
 import com.afollestad.ulfberht.util.Types.LIFECYCLE_OBSERVER
 import com.afollestad.ulfberht.util.Types.ON_LIFECYCLE_EVENT
 import com.afollestad.ulfberht.util.Types.SCOPE
+import com.squareup.kotlinpoet.STRING
 
 internal class ComponentBuilder(
   private val environment: ProcessingEnvironment
@@ -124,7 +124,7 @@ internal class ComponentBuilder(
   }
 
   private fun propertyScope(value: String): PropertySpec {
-    return PropertySpec.builder(SCOPE_NAME, KOTLIN_STRING)
+    return PropertySpec.builder(SCOPE_NAME, STRING)
         .addModifiers(OVERRIDE)
         .mutable()
         .initializer("%S", value)

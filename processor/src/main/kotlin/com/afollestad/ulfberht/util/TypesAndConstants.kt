@@ -28,6 +28,7 @@ import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.STAR
+import com.squareup.kotlinpoet.STRING
 import com.squareup.kotlinpoet.TypeVariableName
 import com.squareup.kotlinpoet.asTypeName
 import kotlin.reflect.KClass
@@ -44,6 +45,7 @@ internal object Names {
   const val CACHED_PROVIDERS_NAME = "cachedProviders"
   const val PROVIDER_EXTENSION_NAME = "provider"
   const val SINGLETON_PROVIDER_EXTENSION_NAME = "singletonProvider"
+  const val IS_SUBCLASS_OF_EXTENSION_NAME = "isSubClassOf"
 
   const val LIBRARY_PACKAGE = "com.afollestad.ulfberht"
 
@@ -53,8 +55,7 @@ internal object Names {
 
 /** @author Aidan Follestad (@afollestad) */
 internal object Types {
-  val KOTLIN_STRING = ClassName("kotlin", "String")
-  val NULLABLE_KOTLIN_STRING = KOTLIN_STRING.copy(nullable = true)
+  val NULLABLE_KOTLIN_STRING = STRING.copy(nullable = true)
 
   val TYPE_VARIABLE_T = TypeVariableName("T", ANY)
   val REIFIED_TYPE_VARIABLE_T = TYPE_VARIABLE_T.copy(reified = true)

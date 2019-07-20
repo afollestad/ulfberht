@@ -23,6 +23,7 @@ import com.afollestad.ulfberht.util.Annotations.SUPPRESS_UNCHECKED_CAST
 import com.afollestad.ulfberht.util.Names.CACHED_PROVIDERS_NAME
 import com.afollestad.ulfberht.util.Names.CALLED_BY
 import com.afollestad.ulfberht.util.Names.GET_PROVIDER_NAME
+import com.afollestad.ulfberht.util.Names.IS_SUBCLASS_OF_EXTENSION_NAME
 import com.afollestad.ulfberht.util.Names.LIBRARY_PACKAGE
 import com.afollestad.ulfberht.util.Names.MODULE_NAME_SUFFIX
 import com.afollestad.ulfberht.util.Names.PROVIDER_EXTENSION_NAME
@@ -43,7 +44,6 @@ import com.afollestad.ulfberht.util.ProcessorUtil.asFileName
 import com.afollestad.ulfberht.util.Types.BASE_COMPONENT
 import com.afollestad.ulfberht.util.Types.BASE_MODULE
 import com.afollestad.ulfberht.util.Types.KCLASS_OF_T
-import com.afollestad.ulfberht.util.Types.KOTLIN_STRING
 import com.afollestad.ulfberht.util.Types.NULLABLE_BASE_COMPONENT
 import com.afollestad.ulfberht.util.Types.NULLABLE_KOTLIN_STRING
 import com.afollestad.ulfberht.util.Types.PROVIDER
@@ -60,6 +60,7 @@ import com.squareup.kotlinpoet.KModifier.PRIVATE
 import com.squareup.kotlinpoet.MUTABLE_MAP
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
+import com.squareup.kotlinpoet.STRING
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import javax.annotation.processing.ProcessingEnvironment
@@ -114,6 +115,7 @@ internal class ModuleBuilder(
         .build()
     val fileSpec = FileSpec.builder(pkg, fileName)
         .apply {
+          addImport(LIBRARY_PACKAGE, IS_SUBCLASS_OF_EXTENSION_NAME)
           if (haveNonSingletons) {
             addImport(LIBRARY_PACKAGE, PROVIDER_EXTENSION_NAME)
           }
@@ -156,7 +158,7 @@ internal class ModuleBuilder(
   }
 
   private fun cachedProvidersProperty(): PropertySpec {
-    val cachedProviderType = MUTABLE_MAP.parameterizedBy(KOTLIN_STRING, PROVIDER_OF_ANY)
+    val cachedProviderType = MUTABLE_MAP.parameterizedBy(STRING, PROVIDER_OF_ANY)
     return PropertySpec.builder(CACHED_PROVIDERS_NAME, cachedProviderType)
         .addModifiers(OVERRIDE)
         .initializer("hashMapOf()")
@@ -166,21 +168,18 @@ internal class ModuleBuilder(
   private fun getProviderFunction(
     providedTypeMethodNameMap: MutableMap<TypeName, MethodNameAndQualifier>
   ): FunSpec {
-    val nameWantedTypeCls = "${WANTED_TYPE}Cls"
-    val code = CodeBlock.builder()
-        .addStatement("val $nameWantedTypeCls = $WANTED_TYPE.java")
-        .add("return when {\n")
+    val code = CodeBlock.builder().add("return when {\n")
 
     for ((key, value) in providedTypeMethodNameMap) {
       if (value.qualifier != null) {
         code.addStatement(
-            "  %T::class.java.isAssignableFrom($nameWantedTypeCls) " +
+            "  $WANTED_TYPE.$IS_SUBCLASS_OF_EXTENSION_NAME<%T>() " +
                 "&& %S == $QUALIFIER -> %N() as %T",
             key, value.qualifier, value.name, PROVIDER_OF_T
         )
       } else {
         code.addStatement(
-            "  %T::class.java.isAssignableFrom($nameWantedTypeCls) -> %N() as %T",
+            "  $WANTED_TYPE.$IS_SUBCLASS_OF_EXTENSION_NAME<%T>() -> %N() as %T",
             key, value.name, PROVIDER_OF_T
         )
       }
