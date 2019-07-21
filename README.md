@@ -458,7 +458,8 @@ class SomeClass {
 On Android, you can automatically attach scopes to `LifecycleOwner`'s, such as:
 * `Fragment` (from `androidx.app`)
 * `AppCompatActivity`/`FragmentActivity`
-* `ViewModel`
+* `androidx.lifecycle.ViewModel`
+
 _(these all implement the `LifecycleOwner` interface)_
 
 ---
