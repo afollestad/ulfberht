@@ -15,8 +15,8 @@ Dependency injection is a technique in which an application supplies dependencie
 "Dependencies" in this context doesn't necessarily mean dependencies like in a Gradle file. Dependencies 
 in this context are services (i.e. APIs, classes) that are needed in certain parts of your code.
 
-Dependency injection enables you to pass around objects without manual construction - it keeps track  
-of everything for you and injects services where they are needed.
+Dependency injection enables you to pass around services without manual construction - it keeps 
+track of everything for you and injects things where they are needed.
 
 ---
 
@@ -34,17 +34,17 @@ of everything for you and injects services where they are needed.
     2. [Parenting](#parenting)
     4. [Scoping](#scoping)
 5. [Injection](#injection)
-6. [Android Scoping](#android-scoping)
+6. [Android ScopeOwners](#android-scopeowners)
 
 ---
  
 # Why Choose Ulfberht?
 
-I wrote Ulfberht as an experiment to see if I could make Dagger-style dependency injection a bit 
-easier and quicker to pickup for newbies. I wanted something lightweight, with less Boilerplate code 
-and more automation. I wanted something annotation-processor based rather than reflection-based, 
-while still being written in Kotlin. And I wanted better built-in scoping support, especially on 
-Android. This is the result.
+I wrote Ulfberht as an experiment to see if I could make [Dagger](https://github.com/google/dagger) 
+style dependency injection a bit easier, and quicker to pickup for newbies. I wanted something 
+lightweight, with less Boilerplate code and more automation. I wanted something annotation-processor 
+based rather than reflection-based, while still being written in Kotlin. And I wanted better built-in 
+scoping support, especially on Android. _This is the result._
 
 ---
  
@@ -453,7 +453,7 @@ class SomeClass {
 
 ---
 
-# Android Scoping
+# Android ScopeOwners
 
 On Android, you can automatically attach scopes to `LifecycleOwner`'s, such as:
 * `Fragment` (from `androidx.app`)
@@ -509,5 +509,5 @@ class LoginActivity : AppCompatActivity() {
 }
 ```
 
-Since `LoginComponent` is being injected, _and_ because it is in the `LOGIN_SCOPE`, it will be 
-automatically destroyed when `LoginActivity` is. 
+Since `LoginComponent` is being injected, _and_ because it's marked as being in `LOGIN_SCOPE`, it 
+will automatically destroy itself when `LoginActivity` is destroyed. 
