@@ -62,7 +62,7 @@ internal class ExtensionsBuilder(
         .receiver(KCLASS_OF_ANY)
         .addModifiers(INLINE, INTERNAL)
         .addTypeVariable(REIFIED_TYPE_VARIABLE_T)
-        .addCode("return %T::class.java.isAssignableFrom(this::class.java)\n", TYPE_VARIABLE_T)
+        .addCode("return %T::class.java.isAssignableFrom(this.java)\n", TYPE_VARIABLE_T)
         .returns(BOOLEAN)
         .build()
   }

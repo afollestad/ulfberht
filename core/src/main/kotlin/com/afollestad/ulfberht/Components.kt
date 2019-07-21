@@ -59,6 +59,13 @@ internal object Components {
     return newComponent as T
   }
 
+  fun remove(type: KClass<*>) {
+    val key = type.qualifiedName!!
+    check(cache.remove(key) != null) {
+      "Didn't find $key in the component cache."
+    }
+  }
+
   private fun getParent(type: KClass<*>): BaseComponent? {
     val key = type.qualifiedName!!
     return (parentTypeCache[key] ?: type.getParentType())

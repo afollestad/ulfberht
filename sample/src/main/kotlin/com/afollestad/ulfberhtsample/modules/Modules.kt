@@ -47,7 +47,5 @@ interface ModuleTwo {
 abstract class ModuleThree {
   @Provides(MAIN)
   @Singleton
-  fun testString(adder: RealAdder): String {
-    return "Hello, World! $adder"
-  }
+  fun testString(): String = "Hello, World!"
 }

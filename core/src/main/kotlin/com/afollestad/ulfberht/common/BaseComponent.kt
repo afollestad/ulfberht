@@ -17,6 +17,7 @@
 
 package com.afollestad.ulfberht.common
 
+import com.afollestad.ulfberht.Components
 import com.afollestad.ulfberht.Provider
 import com.afollestad.ulfberht.scopes.ScopeObserver
 import kotlin.reflect.KClass
@@ -48,6 +49,7 @@ interface BaseComponent : ScopeObserver {
   fun destroy() {
     children.forEach { it.destroy() }
     modules.forEach { it.destroy() }
+    Components.remove(originalType)
     Logger.log("Destroyed component ${originalType.qualifiedName}")
   }
 

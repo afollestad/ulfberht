@@ -37,7 +37,9 @@ interface BaseModule {
         wantedType = wantedType,
         qualifier = qualifier,
         calledBy = null
-    )?.get() ?: error("Didn't find provider for type ${wantedType.qualifiedName}")
+    )?.get() ?: error(
+        "Didn't find provider for type ${wantedType.qualifiedName} (qualifier=$qualifier)"
+    )
   }
 
   /** Retrieves a [Provider] for a provided class. */

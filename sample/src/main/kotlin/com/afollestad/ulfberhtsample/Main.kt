@@ -21,30 +21,26 @@ import com.afollestad.ulfberht.component
 import com.afollestad.ulfberht.getScope
 import com.afollestad.ulfberhtsample.Qualifiers.MAIN
 import com.afollestad.ulfberhtsample.Scopes.PARENT
-import com.afollestad.ulfberhtsample.api.RealCalculator
+import com.afollestad.ulfberhtsample.api.Calculator
 import com.afollestad.ulfberhtsample.components.ComponentTwo
 
 class Main {
-  @Inject lateinit var calculator: RealCalculator
+  @Inject lateinit var calculator: Calculator
   @Inject(MAIN) lateinit var someString: String
 
   init {
     component<ComponentTwo>().inject(this)
   }
+
+  fun doSomething(value: Int): Int = calculator.doSomething(value)
 }
 
 fun main() {
   Logger.install { println("[LOG] $it") }
   val main1 = Main()
-  val main2 = Main()
   val parentScope = getScope(PARENT)
 
-  check(main1.calculator.doSomething(4) == 12)
-  println(main1.calculator.doSomething(4))
-
-  check(main1.calculator == main2.calculator) {
-    "Instances should be the same since the calculator is a singleton."
-  }
+  println(main1.doSomething(4))
 
   parentScope.exit()
 }

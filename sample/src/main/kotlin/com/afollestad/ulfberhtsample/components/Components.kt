@@ -23,10 +23,17 @@ import com.afollestad.ulfberhtsample.modules.ModuleOne
 import com.afollestad.ulfberhtsample.modules.ModuleThree
 import com.afollestad.ulfberhtsample.modules.ModuleTwo
 
-@Component(scope = PARENT, modules = [ModuleOne::class, ModuleTwo::class, ModuleThree::class])
+@Component(
+    scope = PARENT,
+    modules = [ModuleThree::class]
+)
 interface ComponentOne
 
-@Component(scope = CHILD, parent = ComponentOne::class)
+@Component(
+    scope = CHILD,
+    parent = ComponentOne::class,
+    modules = [ModuleOne::class, ModuleTwo::class]
+)
 interface ComponentTwo {
   fun inject(main: Main)
 }
