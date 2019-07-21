@@ -39,7 +39,6 @@ internal object Names {
   const val QUALIFIER = "qualifier"
   const val CALLED_BY = "calledBy"
 
-  const val DESTROY_METHOD_NAME = "destroy"
   const val GET_PROVIDER_NAME = "getProvider"
 
   const val CACHED_PROVIDERS_NAME = "cachedProviders"
@@ -76,7 +75,6 @@ internal object Types {
 
   val UNSCOPED_PROVIDER = OnDemandProvider::class.asTypeName()
   val SINGLETON_PROVIDER = SingletonProvider::class.asTypeName()
-  val PUBLISHED_API = PublishedApi::class.asTypeName()
 
   val LOGGER = Logger::class.asTypeName()
   val LIFECYCLE_OWNER = ClassName("androidx.lifecycle", "LifecycleOwner")
