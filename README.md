@@ -20,7 +20,7 @@ track of everything for you and injects things where they are needed.
 
 ---
 
-# Table of Contents - Core
+# Table of Contents
 
 1. [Why Choose Ulfberht?](#why-choose-ulfberht)
 2. [Gradle Dependency](#gradle-dependency)
@@ -124,14 +124,10 @@ class DemoImpl(
 @Module
 interface DemoModule {
   @Binds
-  fun demoClass(
-    impl: DemoImpl
-  ): Demo
+  fun demoClass(impl: DemoImpl): Demo
   
   @Binds
-  fun somethingElse(
-    impl: SomethingElseImpl
-  ): SomethingElse
+  fun somethingElse(impl: SomethingElseImpl): SomethingElse
 }
 ```
 
