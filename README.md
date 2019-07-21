@@ -52,8 +52,8 @@ scoping support, especially on Android. _This is the result._
 
 ```gradle
 dependencies {
-  implementation "com.afollestad:ulfberht:0.0.1-beta1"
-  kapt "com.afollestad:ulfbert-processor:0.0.1-beta1"
+  implementation "com.afollestad:ulfberht:0.0.1-beta2"
+  kapt "com.afollestad:ulfbert-processor:0.0.1-beta2"
 }
 ```
 

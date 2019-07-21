@@ -1,3 +1,7 @@
-0.1.0 beta1
+0.1.0 beta2
 
-* Attaching scopes to lifecycle owners on Android is now more automated, and uses a `@ScopeOwner` annotation.
+* Fixed some type comparison bugs in generated components/modules.
+* Removed some internal logging.
+* Cleanup generated component code redundancies.
+* Improved build-time error messaging.
+* Removed some unused code.
