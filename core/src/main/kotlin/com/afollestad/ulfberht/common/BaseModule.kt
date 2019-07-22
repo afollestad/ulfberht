@@ -26,6 +26,7 @@ import kotlin.reflect.KClass
  * @author Aidan Follestad (@afollestad)
  */
 interface BaseModule {
+  val component: BaseComponent
   val cachedProviders: MutableMap<String, Provider<*>>
 
   /** Retrieves a provided class via its [Provider]. */

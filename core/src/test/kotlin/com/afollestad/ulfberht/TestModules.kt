@@ -39,10 +39,10 @@ abstract class TestBaseModule : BaseModule {
 }
 
 @Module
-class Module1_Module : TestBaseModule()
+class Module1_Module(override val component: BaseComponent) : TestBaseModule()
 
 @Module
-class Module2_Module : TestBaseModule()
+class Module2_Module(override val component: BaseComponent) : TestBaseModule()
 
 @Module
-class Module3_Module : TestBaseModule()
+class Module3_Module(override val component: BaseComponent) : TestBaseModule()

@@ -36,7 +36,6 @@ import com.squareup.kotlinpoet.KModifier.INLINE
 import com.squareup.kotlinpoet.KModifier.INTERNAL
 import com.squareup.kotlinpoet.KModifier.NOINLINE
 import com.squareup.kotlinpoet.LambdaTypeName
-import com.squareup.kotlinpoet.ParameterSpec
 import javax.annotation.processing.ProcessingEnvironment
 
 /**
@@ -85,11 +84,7 @@ internal class ExtensionsBuilder(
         .addAnnotation(SUPPRESS_UNCHECKED_CAST)
         .addModifiers(INLINE, INTERNAL)
         .addTypeVariable(REIFIED_TYPE_VARIABLE_T)
-        .addParameter(
-            ParameterSpec.builder("block", parameterType)
-                .addModifiers(NOINLINE)
-                .build()
-        )
+        .addParameter("block", parameterType, NOINLINE)
         .returns(PROVIDER_OF_T)
         .addCode(
             CodeBlock.of(

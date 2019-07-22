@@ -22,6 +22,7 @@ import com.afollestad.ulfberht.annotation.Singleton
 import com.afollestad.ulfberht.util.Annotations.SUPPRESS_UNCHECKED_CAST
 import com.afollestad.ulfberht.util.Names.CACHED_PROVIDERS_NAME
 import com.afollestad.ulfberht.util.Names.CALLED_BY
+import com.afollestad.ulfberht.util.Names.COMPONENT_PARAM_NAME
 import com.afollestad.ulfberht.util.Names.GET_PROVIDER_NAME
 import com.afollestad.ulfberht.util.Names.IS_SUBCLASS_OF_EXTENSION_NAME
 import com.afollestad.ulfberht.util.Names.LIBRARY_PACKAGE
@@ -150,14 +151,14 @@ internal class ModuleBuilder(
         }
         .primaryConstructor(
             FunSpec.constructorBuilder()
-                .addParameter(COMPONENT_PARAM_NAME, BASE_COMPONENT)
+                .addParameter(COMPONENT_PARAM_NAME, BASE_COMPONENT, OVERRIDE)
                 .build()
         )
         .addProperties(
             listOf(
                 cachedProvidersProperty(),
                 PropertySpec.builder(COMPONENT_PARAM_NAME, BASE_COMPONENT)
-                    .addModifiers(PRIVATE)
+                    .addModifiers(OVERRIDE)
                     .initializer(COMPONENT_PARAM_NAME)
                     .build()
             )
@@ -168,7 +169,7 @@ internal class ModuleBuilder(
     val cachedProviderType = MUTABLE_MAP.parameterizedBy(STRING, PROVIDER_OF_ANY)
     return PropertySpec.builder(CACHED_PROVIDERS_NAME, cachedProviderType)
         .addModifiers(OVERRIDE)
-        .initializer("hashMapOf()")
+        .initializer("mutableMapOf()")
         .build()
   }
 
@@ -216,9 +217,7 @@ internal class ModuleBuilder(
     providedTypeMethodNameMap: MutableMap<TypeName, MethodNameAndQualifier>
   ): FunSpec? {
     if (method.parameters.size != 1) {
-      environment.error(
-          "$method: @Binds methods must have a single parameter."
-      )
+      environment.error("$method: @Binds methods must have a single parameter.")
       return null
     }
     val parameter = method.parameters.single()
@@ -248,32 +247,30 @@ internal class ModuleBuilder(
     val fieldTypeConstructorParams = parameterType
         .asTypeElement()
         .getConstructorParamsAndQualifiers()
+    val indent = fieldTypeConstructorParams.indent
+    val paramBreak = fieldTypeConstructorParams.lineBreak
 
     val code = CodeBlock.builder()
-    if (fieldTypeConstructorParams.isEmpty()) {
-      code.addStatement("return %N { %T() }", providerMethodName, parameterType)
-    } else {
-      code.apply {
-        add("return %N {\n", providerMethodName)
-        addStatement("  %T(", parameterType)
-        for ((index, typeAndQualifier) in fieldTypeConstructorParams.withIndex()) {
-          val (type, qualifier) = typeAndQualifier
-          if (index > 0) add(",\n")
-          if (qualifier != null) {
-            add("    get(%T::class, qualifier = %S)", type, qualifier)
-          } else {
-            add("    get(%T::class)", type)
+        .apply {
+          add("return %N {\n  %T(", providerMethodName, parameterType)
+          for ((index, typeAndQualifier) in fieldTypeConstructorParams.withIndex()) {
+            val (type, qualifier) = typeAndQualifier
+            if (index > 0) add(",")
+            if (qualifier != null) {
+              add("$paramBreak${indent}get(%T::class, qualifier = %S)", type, qualifier)
+            } else {
+              add("$paramBreak${indent}get(%T::class)", type)
+            }
           }
+          if (fieldTypeConstructorParams.size > 1) add("\n  ")
+          add(")\n}\n")
         }
-        add("\n  )")
-        add("\n}\n")
-      }
-    }
+        .build()
 
     return FunSpec.builder(methodName)
         .addModifiers(PRIVATE)
         .returns(providerReturnType)
-        .addCode(code.build())
+        .addCode(code)
         .build()
   }
 
@@ -294,50 +291,37 @@ internal class ModuleBuilder(
         qualifier = qualifierName
     )
 
+    val indent = method.parameters.indent
+    val paramBreak = method.parameters.lineBreak
+
     val code = CodeBlock.builder()
-    when {
-      method.parameters.isEmpty() -> {
-        code.addStatement("return %N { %N() }", providerMethodName, originalMethodName)
-      }
-      method.parameters.size == 1 -> {
-        val param = method.parameters.single()
-        val qualifier = method.getAnnotationMirror<Param>()
-            .qualifier
-        code.add("return %N {\n  %N(", providerMethodName, originalMethodName)
-        if (qualifier != null) {
-          code.add("get(%T::class, qualifier = %S)", param.asType(), qualifier)
-        } else {
-          code.add("get(%T::class)", param.asType())
-        }
-        code.add(")\n}\n")
-      }
-      else -> {
-        code.apply {
-          add("return %N {\n", providerMethodName)
-          add("  %N(\n", originalMethodName)
-        }
-        for (param in method.parameters) {
-          val qualifier = method.getAnnotationMirror<Param>()
-              .qualifier
-          if (qualifier != null) {
-            code.addStatement("    get(%T::class, qualifier = %S)", param.asType(), qualifier)
-          } else {
-            code.addStatement("    get(%T::class)", param.asType())
+        .apply {
+          add("return %N {\n  %N(", providerMethodName, originalMethodName)
+          for ((index, param) in method.parameters.withIndex()) {
+            val qualifier = method.getAnnotationMirror<Param>()
+                .qualifier
+            if (index > 0) add(",")
+            if (qualifier != null) {
+              add("$paramBreak${indent}get(%T::class, qualifier = %S)", param.asType(), qualifier)
+            } else {
+              add("$paramBreak${indent}get(%T::class)", param.asType())
+            }
           }
+          if (method.parameters.size > 1) add("\n  ")
+          add(")\n}\n")
         }
-        code.apply {
-          add("  )\n")
-          add("}\n")
-        }
-      }
-    }
+        .build()
 
     return FunSpec.builder(newMethodName)
         .addModifiers(PRIVATE)
         .returns(providerReturnType)
-        .addCode(code.build())
+        .addCode(code)
         .build()
   }
+
+  private val List<*>.indent get() = if (size > 1) "    " else ""
+
+  private val List<*>.lineBreak get() = if (size > 1) "\n" else ""
 
   private fun Element.providerGetName(): String {
     return if (hasAnnotationMirror<Singleton>()) {
@@ -355,7 +339,6 @@ internal class ModuleBuilder(
   )
 
   companion object {
-    private const val COMPONENT_PARAM_NAME = "component"
-    const val PROVIDE_FUNCTION_PREFIX = "provides"
+    const val PROVIDE_FUNCTION_PREFIX = "_provides"
   }
 }
