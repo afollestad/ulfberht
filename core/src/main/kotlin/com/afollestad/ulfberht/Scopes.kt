@@ -33,6 +33,10 @@ internal object Scopes {
       scopes[name] = it
     }
   }
+
+  fun resetForTests() {
+    scopes.clear()
+  }
 }
 
 /** Retrieves a [Scope] by [name].*/

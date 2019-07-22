@@ -29,8 +29,8 @@ import kotlin.reflect.KClass
  */
 @PublishedApi
 internal object Components {
-  private val cache = hashMapOf<String, BaseComponent>()
-  private val parentTypeCache = hashMapOf<String, KClass<*>>()
+  val cache = mutableMapOf<String, BaseComponent>()
+  val parentTypeCache = mutableMapOf<String, KClass<*>>()
 
   @Suppress("UNCHECKED_CAST")
   fun <T : Any> get(type: KClass<T>): T {
@@ -61,9 +61,12 @@ internal object Components {
 
   fun remove(type: KClass<*>) {
     val key = type.qualifiedName!!
-    check(cache.remove(key) != null) {
-      "Didn't find $key in the component cache."
-    }
+    cache.remove(key)
+  }
+
+  fun resetForTests() {
+    cache.clear()
+    parentTypeCache.clear()
   }
 
   private fun getParent(type: KClass<*>): BaseComponent? {
