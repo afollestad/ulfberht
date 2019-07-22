@@ -19,7 +19,7 @@ import com.afollestad.ulfberht.util.Annotations.SUPPRESS_UNCHECKED_CAST
 import com.afollestad.ulfberht.util.Names.CACHED_PROVIDERS_NAME
 import com.afollestad.ulfberht.util.Names.IS_SUBCLASS_OF_EXTENSION_NAME
 import com.afollestad.ulfberht.util.Names.LIBRARY_PACKAGE
-import com.afollestad.ulfberht.util.Names.PROVIDER_EXTENSION_NAME
+import com.afollestad.ulfberht.util.Names.FACTORY_EXTENSION_NAME
 import com.afollestad.ulfberht.util.Names.SINGLETON_PROVIDER_EXTENSION_NAME
 import com.afollestad.ulfberht.util.Types.BASE_MODULE
 import com.afollestad.ulfberht.util.Types.KCLASS_OF_ANY
@@ -51,7 +51,7 @@ internal class ExtensionsBuilder(
   fun generate() {
     val fileSpec = FileSpec.builder(LIBRARY_PACKAGE, "_ProcessorExtensions")
         .addFunction(isSubClassOfFunction())
-        .addFunction(providerFunction())
+        .addFunction(factoryProviderFunction())
         .addFunction(singletonProviderFunction())
         .build()
     fileSpec.writeTo(environment.filer)
@@ -67,9 +67,9 @@ internal class ExtensionsBuilder(
         .build()
   }
 
-  private fun providerFunction(): FunSpec {
+  private fun factoryProviderFunction(): FunSpec {
     val parameterType = LambdaTypeName.get(returnType = TYPE_VARIABLE_T)
-    return FunSpec.builder(PROVIDER_EXTENSION_NAME)
+    return FunSpec.builder(FACTORY_EXTENSION_NAME)
         .addModifiers(INTERNAL)
         .addTypeVariable(TYPE_VARIABLE_T)
         .addParameter("block", parameterType)

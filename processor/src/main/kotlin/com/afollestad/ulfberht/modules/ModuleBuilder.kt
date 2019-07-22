@@ -26,7 +26,7 @@ import com.afollestad.ulfberht.util.Names.GET_PROVIDER_NAME
 import com.afollestad.ulfberht.util.Names.IS_SUBCLASS_OF_EXTENSION_NAME
 import com.afollestad.ulfberht.util.Names.LIBRARY_PACKAGE
 import com.afollestad.ulfberht.util.Names.MODULE_NAME_SUFFIX
-import com.afollestad.ulfberht.util.Names.PROVIDER_EXTENSION_NAME
+import com.afollestad.ulfberht.util.Names.FACTORY_EXTENSION_NAME
 import com.afollestad.ulfberht.util.Names.QUALIFIER
 import com.afollestad.ulfberht.util.Names.SINGLETON_PROVIDER_EXTENSION_NAME
 import com.afollestad.ulfberht.util.Names.WANTED_TYPE
@@ -124,7 +124,7 @@ internal class ModuleBuilder(
         .apply {
           addImport(LIBRARY_PACKAGE, IS_SUBCLASS_OF_EXTENSION_NAME)
           if (haveNonSingletons) {
-            addImport(LIBRARY_PACKAGE, PROVIDER_EXTENSION_NAME)
+            addImport(LIBRARY_PACKAGE, FACTORY_EXTENSION_NAME)
           }
           if (haveSingletons) {
             addImport(LIBRARY_PACKAGE, SINGLETON_PROVIDER_EXTENSION_NAME)
@@ -345,7 +345,7 @@ internal class ModuleBuilder(
       SINGLETON_PROVIDER_EXTENSION_NAME
     } else {
       haveNonSingletons = true
-      PROVIDER_EXTENSION_NAME
+      FACTORY_EXTENSION_NAME
     }
   }
 

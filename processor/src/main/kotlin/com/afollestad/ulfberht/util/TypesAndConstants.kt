@@ -19,7 +19,7 @@ import com.afollestad.ulfberht.Provider
 import com.afollestad.ulfberht.common.BaseComponent
 import com.afollestad.ulfberht.common.BaseModule
 import com.afollestad.ulfberht.common.BaseModule.SingletonProvider
-import com.afollestad.ulfberht.common.BaseModule.OnDemandProvider
+import com.afollestad.ulfberht.common.BaseModule.FactoryProvider
 import com.afollestad.ulfberht.common.Logger
 import com.afollestad.ulfberht.scopes.Scope
 import com.afollestad.ulfberht.util.ProcessorUtil.asNullableTypeName
@@ -42,8 +42,8 @@ internal object Names {
   const val GET_PROVIDER_NAME = "getProvider"
 
   const val CACHED_PROVIDERS_NAME = "cachedProviders"
-  const val PROVIDER_EXTENSION_NAME = "provider"
-  const val SINGLETON_PROVIDER_EXTENSION_NAME = "singletonProvider"
+  const val FACTORY_EXTENSION_NAME = "factory"
+  const val SINGLETON_PROVIDER_EXTENSION_NAME = "singleton"
   const val IS_SUBCLASS_OF_EXTENSION_NAME = "isSubClassOf"
 
   const val LIBRARY_PACKAGE = "com.afollestad.ulfberht"
@@ -73,7 +73,7 @@ internal object Types {
 
   val BASE_MODULE = BaseModule::class.asTypeName()
 
-  val UNSCOPED_PROVIDER = OnDemandProvider::class.asTypeName()
+  val UNSCOPED_PROVIDER = FactoryProvider::class.asTypeName()
   val SINGLETON_PROVIDER = SingletonProvider::class.asTypeName()
 
   val LOGGER = Logger::class.asTypeName()

@@ -56,7 +56,7 @@ interface BaseModule {
   }
 
   /** A [Provider] that returns a new instance for every call to [get]. */
-  class OnDemandProvider<T>(private val creator: () -> T) : Provider<T> {
+  class FactoryProvider<T>(private val creator: () -> T) : Provider<T> {
     override fun get(): T = creator()
 
     override fun destroy() = Unit
