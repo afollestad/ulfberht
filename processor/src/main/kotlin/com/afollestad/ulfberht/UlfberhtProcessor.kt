@@ -26,6 +26,11 @@ import javax.annotation.processing.SupportedSourceVersion
 import javax.lang.model.SourceVersion
 import javax.lang.model.element.TypeElement
 
+/**
+ * Ulfberht's annotation processor, registered in /resources/META-INF.services.
+ *
+ * @author Aidan Follestad (@afollestad)
+ */
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 class UlfberhtProcessor : AbstractProcessor() {
   private val componentBuilder: ComponentBuilder by lazy {

@@ -17,6 +17,11 @@
 
 package com.afollestad.ulfberht.annotation
 
+/**
+ * Marks a function in a @Module to bind the return type to a the method contents.
+ *
+ * @author Aidan Follestad (@afollestad)
+ */
 @Retention(AnnotationRetention.SOURCE)
 @Target(AnnotationTarget.FUNCTION)
 annotation class Provides(val qualifier: String = "")

@@ -192,6 +192,16 @@ internal object ProcessorUtil {
     messager.printMessage(ERROR, message)
   }
 
+  fun <T : Any> T.applyIf(
+    condition: Boolean,
+    block: T.() -> T
+  ): T {
+    if (condition) {
+      return this.block()
+    }
+    return this
+  }
+
   val AnnotationMirror?.qualifier: String?
     get() {
       val qualifier: String = this?.getParameter("qualifier") ?: return null

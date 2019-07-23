@@ -69,6 +69,11 @@ import com.afollestad.ulfberht.util.Types.ON_LIFECYCLE_EVENT
 import com.afollestad.ulfberht.util.Types.SCOPE
 import com.squareup.kotlinpoet.STRING
 
+/**
+ * Generates component implementations from [Component] annotated interfaces.
+ *
+ * @author Aidan Follestad (@afollestad)
+ */
 internal class ComponentBuilder(
   private val environment: ProcessingEnvironment
 ) {

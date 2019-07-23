@@ -15,6 +15,12 @@
  */
 package com.afollestad.ulfberht.annotation
 
+/**
+ * Marks an interface or abstract class as a module that provides instructions
+ * for instantiating services.
+ *
+ * @author Aidan Follestad (@afollestad)
+ */
 @Retention(AnnotationRetention.SOURCE)
 @Target(AnnotationTarget.CLASS)
 annotation class Module

@@ -17,6 +17,12 @@
 
 package com.afollestad.ulfberht.annotation
 
+/**
+ * Marks a class as a scope owner. The class must implement the LifecycleOwner interface as
+ * well, otherwise the build will fail.
+ *
+ * @author Aidan Follestad (@afollestad)
+ */
 @Retention(AnnotationRetention.SOURCE)
 @Target(AnnotationTarget.CLASS)
 annotation class ScopeOwner(val name: String)

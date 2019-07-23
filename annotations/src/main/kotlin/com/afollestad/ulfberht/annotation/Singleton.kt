@@ -15,6 +15,13 @@
  */
 package com.afollestad.ulfberht.annotation
 
+/**
+ * Marks a @Provides or @Binds function in a module - used to indicate that the module
+ * should store the value until the module is destroyed. The same instance will be
+ * returned with each injection until the destruction.
+ *
+ * @author Aidan Follestad (@afollestad)
+ */
 @Retention(AnnotationRetention.SOURCE)
 @Target(AnnotationTarget.FUNCTION)
 annotation class Singleton

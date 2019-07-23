@@ -16,6 +16,7 @@
 package com.afollestad.ulfberht.modules
 
 import com.afollestad.ulfberht.annotation.Binds
+import com.afollestad.ulfberht.annotation.Module
 import com.afollestad.ulfberht.annotation.Param
 import com.afollestad.ulfberht.annotation.Provides
 import com.afollestad.ulfberht.annotation.Singleton
@@ -31,6 +32,7 @@ import com.afollestad.ulfberht.util.Names.FACTORY_EXTENSION_NAME
 import com.afollestad.ulfberht.util.Names.QUALIFIER
 import com.afollestad.ulfberht.util.Names.SINGLETON_PROVIDER_EXTENSION_NAME
 import com.afollestad.ulfberht.util.Names.WANTED_TYPE
+import com.afollestad.ulfberht.util.ProcessorUtil.applyIf
 import com.afollestad.ulfberht.util.ProcessorUtil.asTypeElement
 import com.afollestad.ulfberht.util.ProcessorUtil.correct
 import com.afollestad.ulfberht.util.ProcessorUtil.filterMethods
@@ -70,6 +72,11 @@ import javax.lang.model.element.Element
 import javax.lang.model.element.ElementKind.INTERFACE
 import javax.lang.model.element.ExecutableElement
 
+/**
+ * Generates module implementations from [Module] annotated interfaces and  abstract classes.
+ *
+ * @author Aidan Follestad (@afollestad)
+ */
 internal class ModuleBuilder(
   private val environment: ProcessingEnvironment
 ) {
@@ -122,15 +129,9 @@ internal class ModuleBuilder(
         .addFunction(getProviderFunction(providedTypeMethodNameMap))
         .build()
     val fileSpec = FileSpec.builder(pkg, fileName)
-        .apply {
-          addImport(LIBRARY_PACKAGE, IS_SUBCLASS_OF_EXTENSION_NAME)
-          if (haveNonSingletons) {
-            addImport(LIBRARY_PACKAGE, FACTORY_EXTENSION_NAME)
-          }
-          if (haveSingletons) {
-            addImport(LIBRARY_PACKAGE, SINGLETON_PROVIDER_EXTENSION_NAME)
-          }
-        }
+        .addImport(LIBRARY_PACKAGE, IS_SUBCLASS_OF_EXTENSION_NAME)
+        .applyIf(haveNonSingletons) { addImport(LIBRARY_PACKAGE, FACTORY_EXTENSION_NAME) }
+        .applyIf(haveSingletons) { addImport(LIBRARY_PACKAGE, SINGLETON_PROVIDER_EXTENSION_NAME) }
         .addType(typeSpec)
         .build()
     fileSpec.writeTo(environment.filer)
@@ -144,11 +145,7 @@ internal class ModuleBuilder(
     val builder = TypeSpec.classBuilder(fileName)
     return builder
         .addSuperinterface(BASE_MODULE)
-        .apply {
-          if (isAbstractClass) {
-            superclass(fullClassName)
-          }
-        }
+        .applyIf(isAbstractClass) { superclass(fullClassName) }
         .primaryConstructor(
             FunSpec.constructorBuilder()
                 .addParameter(COMPONENT_PARAM_NAME, BASE_COMPONENT, OVERRIDE)
@@ -194,11 +191,13 @@ internal class ModuleBuilder(
       }
     }
 
-    code.addStatement(
-        "  else -> %N.getProvider($WANTED_TYPE, $QUALIFIER, $CALLED_BY)",
-        COMPONENT_PARAM_NAME
-    )
-    code.add("}\n")
+    code.apply {
+      addStatement(
+          "  else -> %N.getProvider($WANTED_TYPE, $QUALIFIER, $CALLED_BY)",
+          COMPONENT_PARAM_NAME
+      )
+      add("}\n")
+    }
 
     return FunSpec.builder(GET_PROVIDER_NAME)
         .addAnnotation(SUPPRESS_UNCHECKED_CAST)

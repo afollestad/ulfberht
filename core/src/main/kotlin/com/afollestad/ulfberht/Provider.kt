@@ -15,8 +15,17 @@
  */
 package com.afollestad.ulfberht
 
+/**
+ * A [Provider] is in charge of creating an instance of [T]. A Provider
+ * can choose its value's retention policy, and should remove references when
+ * [destroy] is invoked.
+ *
+ * @author Aidan Follestad (@afollestad)
+ */
 interface Provider<T> {
+  /** Gets an instance of [T]. */
   fun get(): T
 
+  /** Destroys any stored references. */
   fun destroy()
 }

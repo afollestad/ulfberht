@@ -22,6 +22,11 @@ import com.afollestad.ulfberht.Provider
 import com.afollestad.ulfberht.scopes.ScopeObserver
 import kotlin.reflect.KClass
 
+/**
+ * The base class for all generated components.
+ *
+ * @author Aidan Follestad (@afollestad)
+ */
 interface BaseComponent : ScopeObserver {
   val scope: String
   val originalType: KClass<*>

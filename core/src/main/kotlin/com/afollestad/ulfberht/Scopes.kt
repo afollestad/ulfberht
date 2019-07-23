@@ -39,7 +39,11 @@ internal object Scopes {
   }
 }
 
-/** Retrieves a [Scope] by [name].*/
+/**
+ * Retrieves a [Scope] by [name].
+ *
+ * @author Aidan Follestad (@afollestad)
+ */
 fun getScope(name: String): Scope {
   require(name.isNotEmpty()) { "Invalid scope name: $name" }
   return Scopes.get(name)!!

@@ -15,20 +15,32 @@
  */
 package com.afollestad.ulfberht.scopes
 
+import com.afollestad.ulfberht.annotation.Component
 import com.afollestad.ulfberht.common.Logger
 
-/** @author Aidan Follestad (@afollestad) */
+/**
+ * A [Scope] groups a set of components so that they can be destroyed
+ * at will.
+ *
+ * @author Aidan Follestad (@afollestad)
+ */
 interface Scope {
+  /** The name of the scope, taken from a [Component] interface. */
   val name: String
 
+  /** Adds a [ScopeObserver] that is notified when the scope exists.  */
   fun addObserver(observer: ScopeObserver)
 
+  /** Removes an added [ScopeObserver]. */
   fun removeObserver(observer: ScopeObserver)
 
+  /** Exits the scope, notifying attached [ScopeObserver]'s. */
   fun exit()
 }
 
+/** A ScopeObserver receives exit notifications of a [Scope]. */
 interface ScopeObserver {
+  /** Invoked when the scope is exited. */
   fun onExit()
 }
 

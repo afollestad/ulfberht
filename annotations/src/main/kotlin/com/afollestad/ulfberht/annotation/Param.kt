@@ -17,6 +17,11 @@
 
 package com.afollestad.ulfberht.annotation
 
+/**
+ * Used to add an injection qualifier to a constructor or function parameter.
+ *
+ * @author Aidan Follestad (@afollestad)
+ */
 @Retention(AnnotationRetention.RUNTIME)
 @Target(AnnotationTarget.TYPE_PARAMETER, AnnotationTarget.VALUE_PARAMETER)
 annotation class Param(val qualifier: String)

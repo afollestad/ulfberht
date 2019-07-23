@@ -17,6 +17,11 @@
 
 package com.afollestad.ulfberht.annotation
 
+/**
+ * Marks a field in any class to be populated via injection.
+ *
+ * @author Aidan Follestad (@afollestad)
+ */
 @Retention(AnnotationRetention.SOURCE)
 @Target(AnnotationTarget.FIELD)
 annotation class Inject(val qualifier: String = "")

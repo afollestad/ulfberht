@@ -15,6 +15,7 @@
  */
 package com.afollestad.ulfberht
 
+import com.afollestad.ulfberht.annotation.Component
 import com.afollestad.ulfberht.common.BaseComponent
 import com.afollestad.ulfberht.common.Logger
 import com.afollestad.ulfberht.util.asKClass
@@ -32,6 +33,7 @@ internal object Components {
   val cache = mutableMapOf<String, BaseComponent>()
   val parentTypeCache = mutableMapOf<String, KClass<*>>()
 
+  /** Retrieves a cached component or creates a new instance of it. */
   @Suppress("UNCHECKED_CAST")
   fun <T : Any> get(type: KClass<T>): T {
     // First see if we can retrieve the component from the cache
@@ -39,6 +41,11 @@ internal object Components {
     if (cache.containsKey(key)) {
       Logger.log("Got from cache: $key")
       return cache[key] as T
+    }
+
+    // Validate the given [type] as a supported component.
+    require(type.java.isInterface && type.annotations.any { it is Component }) {
+      "$type is not a @Component annotated interface."
     }
 
     // If we cannot, we need to create it. First, get its parent component, if there is one.
@@ -59,11 +66,13 @@ internal object Components {
     return newComponent as T
   }
 
+  /** Removes a cached component by the given [type]. */
   fun remove(type: KClass<*>) {
     val key = type.qualifiedName!!
     cache.remove(key)
   }
 
+  /** Visible for testing - clears static caches for unit tests. */
   fun resetForTests() {
     cache.clear()
     parentTypeCache.clear()
@@ -79,6 +88,14 @@ internal object Components {
   }
 }
 
+/**
+ * Retrieves a component, [T], which must be an interface annotated with @Component.
+ * The component hierarchy is automatically built up, so the parent this component and
+ * the parents of further parents will all be created if necessary. Components are automatically
+ * cached, so no need to do that in your implementation.
+ *
+ * @author Aidan Follestad (@afollestad)
+ */
 inline fun <reified T : Any> component(): T {
   return Components.get(T::class)
 }
