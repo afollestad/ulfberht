@@ -248,10 +248,11 @@ internal class ModuleBuilder(
         .getConstructorParamsAndQualifiers()
     val indent = fieldTypeConstructorParams.indent
     val paramBreak = fieldTypeConstructorParams.lineBreak
+    val factoryNamePrefix = if (fieldTypeConstructorParams.size > 1) "  " else " "
 
     val code = CodeBlock.builder()
         .apply {
-          add("return %N {\n  %T(", providerMethodName, parameterType)
+          add("return %N {$paramBreak$factoryNamePrefix%T(", providerMethodName, parameterType)
           for ((index, typeAndQualifier) in fieldTypeConstructorParams.withIndex()) {
             val (type, qualifier) = typeAndQualifier
             if (index > 0) add(",")
@@ -262,7 +263,7 @@ internal class ModuleBuilder(
             }
           }
           if (fieldTypeConstructorParams.size > 1) add("\n  ")
-          add(")\n}\n")
+          add(") $paramBreak}\n")
         }
         .build()
 
@@ -292,10 +293,11 @@ internal class ModuleBuilder(
 
     val indent = method.parameters.indent
     val paramBreak = method.parameters.lineBreak
+    val factoryNamePrefix = if (method.parameters.size > 1) "  " else " "
 
     val code = CodeBlock.builder()
         .apply {
-          add("return %N {\n  %N(", providerMethodName, originalMethodName)
+          add("return %N {$paramBreak$factoryNamePrefix%N(", providerMethodName, originalMethodName)
           for ((index, param) in method.parameters.withIndex()) {
             val qualifier = method.getAnnotationMirror<Param>()
                 .qualifier
@@ -307,7 +309,7 @@ internal class ModuleBuilder(
             }
           }
           if (method.parameters.size > 1) add("\n  ")
-          add(")\n}\n")
+          add(") $paramBreak}\n")
         }
         .build()
 
