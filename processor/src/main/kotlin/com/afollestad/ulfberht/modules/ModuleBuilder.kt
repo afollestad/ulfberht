@@ -95,7 +95,7 @@ internal class ModuleBuilder(
     haveSingletons = false
 
     val pkg = element.getPackage(environment)
-    fullClassName = element.getFullClassName(environment, pkg)
+        .also { fullClassName = element.getFullClassName(environment, it) }
 
     val fileName = fullClassName.asFileName(MODULE_NAME_SUFFIX)
     val typeBuilder = moduleTypeBuilder(fileName, element.isAbstractClass(), fullClassName)
@@ -103,27 +103,9 @@ internal class ModuleBuilder(
 
     element.enclosedElements
         .filterMethods()
-        .forEach { method ->
-          val bindsAnnotation = method.getAnnotationMirror<Binds>()
-          bindsAnnotation?.let {
-            if (element.kind != INTERFACE) {
-              environment.error("$method: @Binds methods can only be used in an interface.")
-              return@generate
-            }
-            bindsFunction(method, providedTypeMethodNameMap)
-                ?.let { typeBuilder.addFunction(it) }
-            return@forEach
-          }
-          val providesAnnotation = method.getAnnotationMirror<Provides>()
-          providesAnnotation?.let {
-            if (!element.isAbstractClass()) {
-              environment.error("$method: @Provides methods can only be used in an abstract class.")
-              return@generate
-            }
-            typeBuilder.addFunction(providesFunction(method, providedTypeMethodNameMap))
-            return@forEach
-          }
-        }
+        .map { processBindsOrProvidesMethod(element, it, providedTypeMethodNameMap) }
+        .filter { it != null }
+        .forEach { typeBuilder.addFunction(it!!) }
 
     val typeSpec = typeBuilder
         .addFunction(getProviderFunction(providedTypeMethodNameMap))
@@ -135,6 +117,28 @@ internal class ModuleBuilder(
         .addType(typeSpec)
         .build()
     fileSpec.writeTo(environment.filer)
+  }
+
+  private fun processBindsOrProvidesMethod(
+    element: Element,
+    method: ExecutableElement,
+    providedTypeMethodNameMap: MutableMap<TypeName, MethodNameAndQualifier>
+  ): FunSpec? {
+    return when {
+      method.getAnnotationMirror<Binds>() != null -> if (element.kind != INTERFACE) {
+        environment.error("$method: @Binds methods can only be used in an interface.")
+        null
+      } else {
+        bindsFunction(method, providedTypeMethodNameMap)
+      }
+      method.getAnnotationMirror<Provides>() != null -> if (!element.isAbstractClass()) {
+        environment.error("$method: @Provides methods can only be used in an abstract class.")
+        null
+      } else {
+        providesFunction(method, providedTypeMethodNameMap)
+      }
+      else -> null
+    }
   }
 
   private fun moduleTypeBuilder(

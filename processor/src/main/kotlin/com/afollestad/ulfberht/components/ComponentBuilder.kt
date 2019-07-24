@@ -88,7 +88,7 @@ internal class ComponentBuilder(
     }
 
     val pkg = element.getPackage(environment)
-    fullClassName = element.getFullClassName(environment, pkg)
+        .also { fullClassName = element.getFullClassName(environment, it) }
 
     val fileName = fullClassName.asFileName(COMPONENT_NAME_SUFFIX)
     val component = element.getAnnotationMirror<Component>()!!
@@ -99,10 +99,9 @@ internal class ComponentBuilder(
     element.enclosedElements
         .filterMethods()
         .filter { it.simpleName.toString() == INJECT_METHOD_NAME }
-        .forEach { method ->
-          injectFunction(method)
-              ?.let { typeBuilder.addFunction(it) }
-        }
+        .map { injectFunction(it) }
+        .filter { it != null }
+        .forEach { typeBuilder.addFunction(it!!) }
 
     val fileSpec = FileSpec.builder(pkg, fileName)
         .addType(typeBuilder.build())
@@ -250,37 +249,38 @@ internal class ComponentBuilder(
     val paramName = parameter.simpleName.toString()
     val paramClass = parameter.asType()
         .asTypeElement()
-    val injectFields = paramClass.enclosedElements.injectedFieldsAndQualifiers()
 
     val code = CodeBlock.builder()
-    injectFields.forEach { (field, qualifier) ->
-      if (qualifier != null) {
-        code.addStatement(
-            "$paramName.%N = get(%T::class, qualifier = %S)",
-            field.simpleName.toString(),
-            field.getFieldTypeName(),
-            qualifier
-        )
-      } else {
-        code.addStatement(
-            "$paramName.%N = get(%T::class)",
-            field.simpleName.toString(), field.getFieldTypeName()
-        )
-      }
-    }
+    paramClass.enclosedElements
+        .injectedFieldsAndQualifiers()
+        .forEach { (field, qualifier) ->
+          if (qualifier != null) {
+            code.addStatement(
+                "$paramName.%N = get(%T::class, qualifier = %S)",
+                field.simpleName.toString(),
+                field.getFieldTypeName(),
+                qualifier
+            )
+          } else {
+            code.addStatement(
+                "$paramName.%N = get(%T::class)",
+                field.simpleName.toString(), field.getFieldTypeName()
+            )
+          }
+        }
 
-    val scopeOwner = paramClass.getAnnotationMirror<ScopeOwner>()
-    if (scopeOwner != null) {
-      if (!paramClass.isLifecycleOwner()) {
-        environment.error(
-            "$paramClass: @ScopeOwner can only be used on classes which implement LifecycleOwner."
-        )
-        return null
-      }
+    paramClass.getAnnotationMirror<ScopeOwner>()
+        ?.let { scopeOwner ->
+          if (!paramClass.isLifecycleOwner()) {
+            environment.error(
+                "$paramClass: @ScopeOwner can only be used on classes which implement LifecycleOwner."
+            )
+            return null
+          }
 
-      val ownedScope = scopeOwner.name
-      code.add(
-          "\n" + """
+          val ownedScope = scopeOwner.name
+          code.add(
+              "\n" + """
             val scope: %T = %T(%S)
             $paramName.lifecycle.addObserver(object : %T {
               @%T(%T)
@@ -288,12 +288,12 @@ internal class ComponentBuilder(
             })
             %T.log(%P)
             """.trimIndent() + "\n",
-          SCOPE, GET_SCOPE_METHOD, ownedScope,
-          LIFECYCLE_OBSERVER,
-          ON_LIFECYCLE_EVENT, LIFECYCLE_EVENT_ON_DESTROY,
-          LOGGER, "$$paramName is now the owner of scope $ownedScope"
-      )
-    }
+              SCOPE, GET_SCOPE_METHOD, ownedScope,
+              LIFECYCLE_OBSERVER,
+              ON_LIFECYCLE_EVENT, LIFECYCLE_EVENT_ON_DESTROY,
+              LOGGER, "$$paramName is now the owner of scope $ownedScope"
+          )
+        }
 
     return FunSpec.builder(method.simpleName.toString())
         .addModifiers(OVERRIDE)
