@@ -15,32 +15,54 @@
  */
 package com.afollestad.ulfberhtsample
 
+import com.afollestad.ulfberht.annotation.Binds
+import com.afollestad.ulfberht.annotation.Component
 import com.afollestad.ulfberht.annotation.Inject
+import com.afollestad.ulfberht.annotation.Module
 import com.afollestad.ulfberht.common.Logger
 import com.afollestad.ulfberht.component
-import com.afollestad.ulfberht.getScope
-import com.afollestad.ulfberhtsample.Qualifiers.MAIN
-import com.afollestad.ulfberhtsample.Scopes.PARENT
-import com.afollestad.ulfberhtsample.api.Calculator
-import com.afollestad.ulfberhtsample.components.ComponentTwo
+
+@Component(modules = [MyModule::class])
+interface MyComponent {
+  fun inject(main: Main)
+}
+
+@Module
+interface MyModule {
+  @Binds fun one(one: OneImpl): One
+
+  @Binds fun two(two: TwoImpl): Two
+}
+
+interface One {
+  fun doSomething()
+}
+
+class OneImpl(private val two: Two) : One {
+  override fun doSomething() = two.doSomething()
+}
+
+interface Two {
+  fun doSomething()
+}
+
+class TwoImpl : Two {
+  override fun doSomething() {
+    println("hello, from Two!")
+  }
+}
 
 class Main {
-  @Inject lateinit var calculator: Calculator
-  @Inject(MAIN) lateinit var someString: String
+  @Inject lateinit var one: One
+
+  fun doSomething() = one.doSomething()
 
   init {
-    component<ComponentTwo>().inject(this)
+    component<MyComponent>().inject(this)
   }
-
-  fun doSomething(value: Int): Int = calculator.doSomething(value)
 }
 
 fun main() {
   Logger.install { println("[LOG] $it") }
-  val main1 = Main()
-  val parentScope = getScope(PARENT)
-
-  println(main1.doSomething(4))
-
-  parentScope.exit()
+  Main().doSomething()
 }

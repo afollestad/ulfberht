@@ -15,22 +15,40 @@
  */
 package com.afollestad.ulfberht.components
 
+import com.afollestad.ulfberht.annotation.Component
+import com.afollestad.ulfberht.annotation.ScopeOwner
 import com.afollestad.ulfberht.util.Names.CALLED_BY
+import com.afollestad.ulfberht.util.Names.GET_PROVIDER_NAME
+import com.afollestad.ulfberht.util.Names.MODULES_LIST_NAME
 import com.afollestad.ulfberht.util.Names.QUALIFIER
 import com.afollestad.ulfberht.util.Names.WANTED_TYPE
+import com.afollestad.ulfberht.util.ProcessorUtil.asFileName
+import com.afollestad.ulfberht.util.ProcessorUtil.asTypeElement
+import com.afollestad.ulfberht.util.ProcessorUtil.error
+import com.afollestad.ulfberht.util.ProcessorUtil.filterMethods
+import com.afollestad.ulfberht.util.ProcessorUtil.getAnnotationMirror
+import com.afollestad.ulfberht.util.ProcessorUtil.getFieldTypeName
+import com.afollestad.ulfberht.util.ProcessorUtil.getFullClassName
+import com.afollestad.ulfberht.util.ProcessorUtil.getModulesTypes
+import com.afollestad.ulfberht.util.ProcessorUtil.getPackage
+import com.afollestad.ulfberht.util.ProcessorUtil.getParameter
+import com.afollestad.ulfberht.util.ProcessorUtil.injectedFieldsAndQualifiers
+import com.afollestad.ulfberht.util.ProcessorUtil.isLifecycleOwner
+import com.afollestad.ulfberht.util.ProcessorUtil.name
 import com.afollestad.ulfberht.util.Types.BASE_COMPONENT
 import com.afollestad.ulfberht.util.Types.BASE_MODULE
+import com.afollestad.ulfberht.util.Types.GET_SCOPE_METHOD
 import com.afollestad.ulfberht.util.Types.KCLASS_OF_ANY
 import com.afollestad.ulfberht.util.Types.KCLASS_OF_T
+import com.afollestad.ulfberht.util.Types.LIFECYCLE_EVENT_ON_DESTROY
+import com.afollestad.ulfberht.util.Types.LIFECYCLE_OBSERVER
 import com.afollestad.ulfberht.util.Types.LOGGER
 import com.afollestad.ulfberht.util.Types.NULLABLE_BASE_COMPONENT
 import com.afollestad.ulfberht.util.Types.NULLABLE_KOTLIN_STRING
+import com.afollestad.ulfberht.util.Types.ON_LIFECYCLE_EVENT
 import com.afollestad.ulfberht.util.Types.PROVIDER_OF_T_NULLABLE
+import com.afollestad.ulfberht.util.Types.SCOPE
 import com.afollestad.ulfberht.util.Types.TYPE_VARIABLE_T
-import com.afollestad.ulfberht.annotation.Component
-import com.afollestad.ulfberht.annotation.ScopeOwner
-import com.afollestad.ulfberht.util.Names.GET_PROVIDER_NAME
-import com.afollestad.ulfberht.util.Names.MODULES_LIST_NAME
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec
@@ -41,6 +59,7 @@ import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.SET
+import com.squareup.kotlinpoet.STRING
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.TypeSpec.Builder
@@ -49,25 +68,6 @@ import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.Element
 import javax.lang.model.element.ElementKind.INTERFACE
 import javax.lang.model.element.ExecutableElement
-import com.afollestad.ulfberht.util.ProcessorUtil.asTypeElement
-import com.afollestad.ulfberht.util.ProcessorUtil.injectedFieldsAndQualifiers
-import com.afollestad.ulfberht.util.ProcessorUtil.filterMethods
-import com.afollestad.ulfberht.util.ProcessorUtil.getAnnotationMirror
-import com.afollestad.ulfberht.util.ProcessorUtil.getFieldTypeName
-import com.afollestad.ulfberht.util.ProcessorUtil.getFullClassName
-import com.afollestad.ulfberht.util.ProcessorUtil.getPackage
-import com.afollestad.ulfberht.util.ProcessorUtil.getParameter
-import com.afollestad.ulfberht.util.ProcessorUtil.asFileName
-import com.afollestad.ulfberht.util.ProcessorUtil.getModulesTypes
-import com.afollestad.ulfberht.util.ProcessorUtil.name
-import com.afollestad.ulfberht.util.ProcessorUtil.isLifecycleOwner
-import com.afollestad.ulfberht.util.ProcessorUtil.error
-import com.afollestad.ulfberht.util.Types.GET_SCOPE_METHOD
-import com.afollestad.ulfberht.util.Types.LIFECYCLE_EVENT_ON_DESTROY
-import com.afollestad.ulfberht.util.Types.LIFECYCLE_OBSERVER
-import com.afollestad.ulfberht.util.Types.ON_LIFECYCLE_EVENT
-import com.afollestad.ulfberht.util.Types.SCOPE
-import com.squareup.kotlinpoet.STRING
 
 /**
  * Generates component implementations from [Component] annotated interfaces.

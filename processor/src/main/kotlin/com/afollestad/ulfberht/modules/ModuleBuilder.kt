@@ -21,6 +21,7 @@ import com.afollestad.ulfberht.annotation.Param
 import com.afollestad.ulfberht.annotation.Provides
 import com.afollestad.ulfberht.annotation.Singleton
 import com.afollestad.ulfberht.util.Annotations.SUPPRESS_UNCHECKED_CAST
+import com.afollestad.ulfberht.util.DependencyGraph
 import com.afollestad.ulfberht.util.Names.CACHED_PROVIDERS_NAME
 import com.afollestad.ulfberht.util.Names.CALLED_BY
 import com.afollestad.ulfberht.util.Names.COMPONENT_PARAM_NAME
@@ -67,6 +68,7 @@ import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.STRING
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.asTypeName
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.Element
 import javax.lang.model.element.ElementKind.INTERFACE
@@ -78,7 +80,8 @@ import javax.lang.model.element.ExecutableElement
  * @author Aidan Follestad (@afollestad)
  */
 internal class ModuleBuilder(
-  private val environment: ProcessingEnvironment
+  private val environment: ProcessingEnvironment,
+  private val dependencyGraph: DependencyGraph
 ) {
   private lateinit var fullClassName: ClassName
   private var haveNonSingletons: Boolean = false
@@ -265,6 +268,10 @@ internal class ModuleBuilder(
             } else {
               add("$paramBreak${indent}get(%T::class)", type)
             }
+            if (!dependencyGraph.put(correctedReturnType, type)) {
+              // Dependency issue detected
+              return null
+            }
           }
           if (fieldTypeConstructorParams.size > 1) add("\n  ")
           add(") $paramBreak}\n")
@@ -281,7 +288,7 @@ internal class ModuleBuilder(
   private fun providesFunction(
     method: ExecutableElement,
     providedTypeMethodNameMap: MutableMap<TypeName, MethodNameAndQualifier>
-  ): FunSpec {
+  ): FunSpec? {
     val originalMethodName = method.simpleName.toString()
     val newMethodName = "$PROVIDE_FUNCTION_PREFIX${originalMethodName.capitalize()}"
     val correctedReturnType = method.returnType.correct()
@@ -303,13 +310,19 @@ internal class ModuleBuilder(
         .apply {
           add("return %N {$paramBreak$factoryNamePrefix%N(", providerMethodName, originalMethodName)
           for ((index, param) in method.parameters.withIndex()) {
+            val paramType = param.asType()
+                .asTypeName()
             val qualifier = method.getAnnotationMirror<Param>()
                 .qualifier
             if (index > 0) add(",")
             if (qualifier != null) {
-              add("$paramBreak${indent}get(%T::class, qualifier = %S)", param.asType(), qualifier)
+              add("$paramBreak${indent}get(%T::class, qualifier = %S)", paramType, qualifier)
             } else {
-              add("$paramBreak${indent}get(%T::class)", param.asType())
+              add("$paramBreak${indent}get(%T::class)", paramType)
+            }
+            if (!dependencyGraph.put(correctedReturnType, paramType)) {
+              // Dependency issue detected
+              return null
             }
           }
           if (method.parameters.size > 1) add("\n  ")

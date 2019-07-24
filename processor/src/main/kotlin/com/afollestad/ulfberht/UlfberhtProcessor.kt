@@ -19,6 +19,7 @@ import com.afollestad.ulfberht.annotation.Component
 import com.afollestad.ulfberht.annotation.Module
 import com.afollestad.ulfberht.components.ComponentBuilder
 import com.afollestad.ulfberht.modules.ModuleBuilder
+import com.afollestad.ulfberht.util.DependencyGraph
 import com.afollestad.ulfberht.util.ProcessorUtil.filterClassesAndInterfaces
 import javax.annotation.processing.AbstractProcessor
 import javax.annotation.processing.RoundEnvironment
@@ -33,11 +34,14 @@ import javax.lang.model.element.TypeElement
  */
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 class UlfberhtProcessor : AbstractProcessor() {
+  private val dependencyGraph: DependencyGraph by lazy {
+    DependencyGraph(environment = processingEnv)
+  }
   private val componentBuilder: ComponentBuilder by lazy {
     ComponentBuilder(environment = processingEnv)
   }
   private val moduleBuilder: ModuleBuilder by lazy {
-    ModuleBuilder(environment = processingEnv)
+    ModuleBuilder(environment = processingEnv, dependencyGraph = dependencyGraph)
   }
   private val extensionsBuilder: ExtensionsBuilder by lazy {
     ExtensionsBuilder(environment = processingEnv)
@@ -55,6 +59,7 @@ class UlfberhtProcessor : AbstractProcessor() {
     roundEnv: RoundEnvironment
   ): Boolean {
     if (annotations.isEmpty()) {
+      dependencyGraph.clear()
       return false
     }
     extensionsBuilder.generate()
@@ -64,6 +69,7 @@ class UlfberhtProcessor : AbstractProcessor() {
     roundEnv.getElementsAnnotatedWith(Module::class.java)
         .filterClassesAndInterfaces()
         .forEach(moduleBuilder::generate)
+
     return true
   }
 }
