@@ -341,6 +341,7 @@ interface ParentComponent
 )
 interface ChildComponent
 
+// This would destroy both components
 getScope(PARENT_SCOPE).exit()
 ```
 
@@ -432,14 +433,17 @@ abstract class DemoModule2 {
   ): Demo1 {
     return Demo1Impl()
   }
+}
 ```
 
 Finally, the `@Inject` annotation takes a qualifier as well:
 
 ```kotlin
 class SomeClass {
-  @Inject(QUALIFIER_ONE) lateinit var someDependency: Demo1
-  @Inject(QUALIFIER_TWO) lateinit var anotherDependency: Demo1
+  @Inject(QUALIFIER_ONE) 
+  lateinit var someDependency: Demo1
+  @Inject(QUALIFIER_TWO) 
+  lateinit var anotherDependency: Demo1
 
   init {
     component<SomeComponent>().inject(this)
