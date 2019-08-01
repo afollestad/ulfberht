@@ -496,6 +496,8 @@ class LoginActivity : AppCompatActivity() {
 }
 ```
 
+Runtime dependencies in a component are made available to all of the component's children too. In an Android application, providing the application context at the `Application` level will make it available to all Activities and Fragments that use child components.
+
 ---
 
 # Android ScopeOwners
