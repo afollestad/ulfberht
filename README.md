@@ -475,9 +475,8 @@ class StringRetriever(
 }
 ```
 
-At injection time, you pass runtime dependencies into the `component` method. They are available 
-with the next call to `inject` on that component, runtime dependencies are not stored after that 
-to avoid memory leaks.
+At injection time, you pass mapped runtime dependencies into the `component` method. They are available 
+for injection until the component is destroyed, or its parents destroy it. 
 
 ```kotlin
 // Should ideally be the same constant above, rather than being defined twice
@@ -496,6 +495,8 @@ class LoginActivity : AppCompatActivity() {
   }
 }
 ```
+
+Runtime dependencies in a component are made available to all of the component's children too. In an Android application, providing the application context at the `Application` level will make it available to all Activities and Fragments that use child components.
 
 ---
 
