@@ -17,9 +17,14 @@ package com.afollestad.ulfberht.components
 
 import com.afollestad.ulfberht.annotation.Component
 import com.afollestad.ulfberht.annotation.ScopeOwner
+import com.afollestad.ulfberht.util.Annotations.SUPPRESS_UNCHECKED_CAST
 import com.afollestad.ulfberht.util.Names.CALLED_BY
+import com.afollestad.ulfberht.util.Names.FACTORY_EXTENSION_NAME
 import com.afollestad.ulfberht.util.Names.GET_PROVIDER_NAME
+import com.afollestad.ulfberht.util.Names.GET_RUNTIME_DEP_NAME
+import com.afollestad.ulfberht.util.Names.LIBRARY_PACKAGE
 import com.afollestad.ulfberht.util.Names.MODULES_LIST_NAME
+import com.afollestad.ulfberht.util.Names.RUNTIME_DEPS_NAME
 import com.afollestad.ulfberht.util.Names.QUALIFIER
 import com.afollestad.ulfberht.util.Names.WANTED_TYPE
 import com.afollestad.ulfberht.util.ProcessorUtil.asFileName
@@ -49,11 +54,13 @@ import com.afollestad.ulfberht.util.Types.ON_LIFECYCLE_EVENT
 import com.afollestad.ulfberht.util.Types.PROVIDER_OF_T_NULLABLE
 import com.afollestad.ulfberht.util.Types.SCOPE
 import com.afollestad.ulfberht.util.Types.TYPE_VARIABLE_T
+import com.squareup.kotlinpoet.ANY
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier.OVERRIDE
+import com.squareup.kotlinpoet.MAP
 import com.squareup.kotlinpoet.MUTABLE_SET
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
@@ -104,6 +111,7 @@ internal class ComponentBuilder(
         .forEach { typeBuilder.addFunction(it!!) }
 
     val fileSpec = FileSpec.builder(pkg, fileName)
+        .addImport(LIBRARY_PACKAGE, FACTORY_EXTENSION_NAME)
         .addType(typeBuilder.build())
         .build()
     fileSpec.writeTo(environment.filer)
@@ -125,7 +133,8 @@ internal class ComponentBuilder(
                 propertyOriginalType(superInterface),
                 propertyParent(),
                 propertyChildren(),
-                propertyModuleList(moduleTypes)
+                propertyModuleList(moduleTypes),
+                propertyRuntimeDependencies()
             )
         )
         .addFunction(getProviderFunction(moduleTypes))
@@ -198,6 +207,16 @@ internal class ComponentBuilder(
         .build()
   }
 
+  private fun propertyRuntimeDependencies(): PropertySpec {
+    val propertyType = MAP
+        .parameterizedBy(NULLABLE_KOTLIN_STRING, ANY)
+        .copy(nullable = true)
+    return PropertySpec.builder(RUNTIME_DEPS_NAME, propertyType, OVERRIDE)
+        .mutable()
+        .initializer("null")
+        .build()
+  }
+
   private fun getProviderFunction(moduleTypes: Sequence<TypeName>): FunSpec {
     val code = CodeBlock.builder()
     if (moduleTypes.firstOrNull() != null) {
@@ -216,15 +235,17 @@ internal class ComponentBuilder(
     code.add(
         CodeBlock.of(
             """
-            if ($CALLED_BY === $PARENT_NAME) return null
-            return $PARENT_NAME?.getProvider($WANTED_TYPE, $QUALIFIER, $CALLED_BY)
-              ?: error(%P)
+            if ($PARENT_NAME != null && $CALLED_BY === $PARENT_NAME) return null
+            val runtimeProvider = $GET_RUNTIME_DEP_NAME<%T>($QUALIFIER)
+                  ?.run { $FACTORY_EXTENSION_NAME { this } }
+            return runtimeProvider ?: $PARENT_NAME?.getProvider($WANTED_TYPE, $QUALIFIER, $CALLED_BY)
             """.trimIndent() + "\n",
-            "You must bind or provide type \${$WANTED_TYPE.qualifiedName}"
+            TYPE_VARIABLE_T
         )
     )
 
     return FunSpec.builder(GET_PROVIDER_NAME)
+        .addAnnotation(SUPPRESS_UNCHECKED_CAST)
         .addParameter(WANTED_TYPE, KCLASS_OF_T)
         .addParameter(QUALIFIER, NULLABLE_KOTLIN_STRING)
         .addParameter(CALLED_BY, NULLABLE_BASE_COMPONENT)

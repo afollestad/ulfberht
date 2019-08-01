@@ -50,6 +50,8 @@ internal object Names {
 
   const val MODULE_NAME_SUFFIX = "_Module"
   const val MODULES_LIST_NAME = "modules"
+  const val RUNTIME_DEPS_NAME = "runtimeDependencies"
+  const val GET_RUNTIME_DEP_NAME = "getRuntimeDependency"
   const val COMPONENT_PARAM_NAME = "component"
 }
 

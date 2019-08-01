@@ -20,6 +20,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.afollestad.ulfberht.annotation.Inject
 import com.afollestad.ulfberht.annotation.ScopeOwner
 import com.afollestad.ulfberht.component
+import com.afollestad.ulfberhtsample.ParamNames.APP_CONTEXT
 import com.afollestad.ulfberhtsample.ScopeNames.LOGIN
 import com.afollestad.ulfberhtsample.api.Authenticator
 import com.afollestad.ulfberhtsample.api.Session
@@ -31,7 +32,9 @@ class LoginActivity : AppCompatActivity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    component<LoginComponent>().inject(this)
+    component<LoginComponent>(
+      APP_CONTEXT to applicationContext
+    ).inject(this)
 
     authenticator.login("aidan", "hello")
     finish()

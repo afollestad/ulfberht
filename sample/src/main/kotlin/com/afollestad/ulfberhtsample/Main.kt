@@ -19,6 +19,7 @@ import com.afollestad.ulfberht.annotation.Binds
 import com.afollestad.ulfberht.annotation.Component
 import com.afollestad.ulfberht.annotation.Inject
 import com.afollestad.ulfberht.annotation.Module
+import com.afollestad.ulfberht.annotation.Param
 import com.afollestad.ulfberht.common.Logger
 import com.afollestad.ulfberht.component
 
@@ -46,10 +47,10 @@ interface Two {
   fun doSomething()
 }
 
-class TwoImpl : Two {
-  override fun doSomething() {
-    println("hello, from Two!")
-  }
+class TwoImpl(
+  @Param("message") private val message: String
+) : Two {
+  override fun doSomething() = println(message)
 }
 
 class Main {
@@ -58,7 +59,9 @@ class Main {
   fun doSomething() = one.doSomething()
 
   init {
-    component<MyComponent>().inject(this)
+    component<MyComponent>(
+        "message" to "Hello, World!"
+    ).inject(this)
   }
 }
 

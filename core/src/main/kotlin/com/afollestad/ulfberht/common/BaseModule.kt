@@ -39,7 +39,7 @@ interface BaseModule {
         qualifier = qualifier,
         calledBy = null
     )?.get() ?: error(
-        "Didn't find provider for type ${wantedType.qualifiedName} (qualifier=$qualifier)"
+        "Didn't find provider for type ${wantedType.qualifiedName} (qualifier=\"$qualifier)\""
     )
   }
 

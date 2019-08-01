@@ -96,6 +96,22 @@ internal object Components {
  *
  * @author Aidan Follestad (@afollestad)
  */
-inline fun <reified T : Any> component(): T {
+inline fun <reified T : Any> component(
+  vararg runtimeDependencies: Pair<String?, Any>
+): T {
   return Components.get(T::class)
+      .withRuntimeDependencies(runtimeDependencies.toMap())
+}
+
+@PublishedApi
+internal inline fun <reified T : Any> Any.withRuntimeDependencies(
+  runtimeDependencies: Map<String?, Any>
+): T {
+  return if (runtimeDependencies.isEmpty()) {
+    this as T
+  } else {
+    (this as BaseComponent).apply {
+      this.runtimeDependencies = runtimeDependencies.toMap()
+    } as T
+  }
 }

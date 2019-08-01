@@ -33,7 +33,9 @@ interface BaseComponent : ScopeObserver {
   val parent: BaseComponent?
   val children: MutableSet<BaseComponent>
   val modules: Set<BaseModule>
+  var runtimeDependencies: Map<String?, Any>?
 
+  @Suppress("UNCHECKED_CAST")
   fun <T : Any> get(
     wantedType: KClass<T>,
     qualifier: String? = null
@@ -42,7 +44,9 @@ interface BaseComponent : ScopeObserver {
         wantedType = wantedType,
         qualifier = qualifier,
         calledBy = null
-    )?.get() ?: error("Didn't find provider for type ${wantedType.qualifiedName}")
+    )?.get() ?: error(
+        "Didn't find provider for type ${wantedType.qualifiedName} (qualifier=\"$qualifier\")"
+    )
   }
 
   fun <T : Any> getProvider(
@@ -51,9 +55,15 @@ interface BaseComponent : ScopeObserver {
     calledBy: BaseComponent? = null
   ): Provider<T>?
 
+  @Suppress("UNCHECKED_CAST")
+  fun <T : Any> getRuntimeDependency(qualifier: String?): T? {
+    return runtimeDependencies?.get(qualifier) as? T
+  }
+
   fun destroy() {
     children.forEach { it.destroy() }
     modules.forEach { it.destroy() }
+    runtimeDependencies = null
     Components.remove(originalType)
     Logger.log("Destroyed component ${originalType.qualifiedName}")
   }

@@ -15,6 +15,10 @@
  */
 package com.afollestad.ulfberhtsample.api
 
+import android.content.Context
+import com.afollestad.ulfberht.annotation.Param
+import com.afollestad.ulfberhtsample.ParamNames.APP_CONTEXT
+
 interface Session {
   fun setAuthToken(token: String)
 
@@ -23,7 +27,9 @@ interface Session {
   fun isLoggedIn(): Boolean
 }
 
-class RealSession : Session {
+class RealSession(
+  @Param(APP_CONTEXT) private val context: Context
+) : Session {
   private var authToken: String? = null
 
   override fun setAuthToken(token: String) {

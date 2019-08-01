@@ -16,7 +16,10 @@
 package com.afollestad.ulfberhtsample
 
 object ScopeNames {
-  const val APP = "app_scope"
   const val LOGIN = "login_scope"
   const val MAIN = "main_scope"
+}
+
+object ParamNames {
+  const val APP_CONTEXT = "param_app_context"
 }

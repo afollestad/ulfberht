@@ -34,7 +34,8 @@ track of everything for you and injects things where they are needed.
     2. [Parenting](#parenting)
     4. [Scoping](#scoping)
 5. [Injection](#injection)
-6. [Android ScopeOwners](#android-scopeowners)
+6. [Runtime Dependencies](#runtime-dependencies)
+7. [Android ScopeOwners](#android-scopeowners)
 
 ---
  
@@ -450,6 +451,51 @@ class SomeClass {
   }
 }
 ``` 
+
+---
+
+# Runtime Dependencies
+
+Sometimes your app may need to be able to inject something that is defined at runtime, something 
+that cannot be constructed in a module. A good example of when this would be necessary is in 
+an Android application, like if you needed to inject the Application context.
+
+First, you tag constructor parameters that need to be provided at runtime with the `@Param` 
+annotation, which is discussed in [Qualifiers](#qualifiers) above.
+
+```kotlin
+const val APP_CONTEXT: String = "app_context"
+
+class StringRetriever(
+  @Param(APP_CONTEXT) val appContext: Context
+) {
+  fun getString(@IdRes res: Int): String {
+    return appContext.resources.getString(res)
+  }
+}
+```
+
+At injection time, you pass runtime dependencies into the `component` method. They are available 
+with the next call to `inject` on that component, runtime dependencies are not stored after that 
+to avoid memory leaks.
+
+```kotlin
+// Should ideally be the same constant above, rather than being defined twice
+const val APP_CONTEXT: String = "app_context"
+
+class LoginActivity : AppCompatActivity() {
+  @Inject 
+  lateinit var stringRetriever: StringRetriever 
+  
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    
+    component<LoginComponent>(
+      APP_CONTEXT to applicationContext 
+    ).inject(this)
+  }
+}
+```
 
 ---
 
