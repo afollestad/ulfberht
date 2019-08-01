@@ -475,8 +475,8 @@ class StringRetriever(
 }
 ```
 
-At injection time, you pass runtime dependencies into the `component` method. They are available 
-with injection until the component is destroyed or its parents destroy it. 
+At injection time, you pass mapped runtime dependencies into the `component` method. They are available 
+for injection until the component is destroyed, or its parents destroy it. 
 
 ```kotlin
 // Should ideally be the same constant above, rather than being defined twice
