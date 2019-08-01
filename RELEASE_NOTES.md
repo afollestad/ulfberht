@@ -1,3 +1,4 @@
-0.1.0 beta4
+0.2.0
 
-* Runtime dependencies - see the README for an example of when this is needed.
+* Fix: The internal `annotations` package needs to be published to Maven as well in order for 
+Gradle resolution to work.

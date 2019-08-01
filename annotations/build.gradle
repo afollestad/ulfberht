@@ -1,12 +1,17 @@
 apply from: "../gradle/javalib-nokapt.gradle"
 
-def artifactId = "ulfberht-annotations"
+ext.artifactId = "ulfberht-annotations"
+apply from: "../bintrayconfig.gradle"
 
 afterEvaluate {
-  tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
-    kotlinOptions {
-      freeCompilerArgs += ['-module-name', artifactId]
+  if (modulePackageId != null && modulePackageId != '') {
+    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+      kotlinOptions {
+        freeCompilerArgs += ['-module-name', modulePackageId]
+      }
     }
+  } else {
+    logger.warn('Skipping setting compiler module name, no package to use.')
   }
 }
 
