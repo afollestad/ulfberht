@@ -476,8 +476,7 @@ class StringRetriever(
 ```
 
 At injection time, you pass runtime dependencies into the `component` method. They are available 
-with the next call to `inject` on that component, runtime dependencies are not stored after that 
-to avoid memory leaks.
+with injection until the component is destroyed or its parents destroy it. 
 
 ```kotlin
 // Should ideally be the same constant above, rather than being defined twice
