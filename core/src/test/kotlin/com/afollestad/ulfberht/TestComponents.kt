@@ -44,6 +44,7 @@ class ComponentParent_Component(
   override val originalType: KClass<*> = ComponentParent::class
   override val children: MutableSet<BaseComponent> = mutableSetOf()
   override val modules: Set<BaseModule> = setOf(Module1_Module(this))
+  override var runtimeDependencies: Map<String?, Any>? = null
 
   override fun <T : Any> getProvider(
     wantedType: KClass<T>,
@@ -67,6 +68,7 @@ class ComponentChild1_Component(
   override val originalType: KClass<*> = ComponentParent::class
   override val children: MutableSet<BaseComponent> = mutableSetOf()
   override val modules: Set<BaseModule> = setOf(Module2_Module(this))
+  override var runtimeDependencies: Map<String?, Any>? = null
 
   override fun <T : Any> getProvider(
     wantedType: KClass<T>,
@@ -89,6 +91,7 @@ class ComponentChild2_Component(
   override val originalType: KClass<*> = ComponentParent::class
   override val children: MutableSet<BaseComponent> = mutableSetOf()
   override val modules: Set<BaseModule> = setOf(Module3_Module(this))
+  override var runtimeDependencies: Map<String?, Any>? = null
 
   override fun <T : Any> getProvider(
     wantedType: KClass<T>,

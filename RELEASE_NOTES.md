@@ -1,4 +1,3 @@
-0.1.0 beta3
+0.1.0 beta4
 
-* Circular dependency detection.
-* Internal cleanup and generated code cleanup.
+* Runtime dependencies - see the README for an example of when this is needed.
