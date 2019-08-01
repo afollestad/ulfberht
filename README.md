@@ -320,8 +320,8 @@ When you use the `component<>()` method to retrieve a component with a scope, th
 attached to its scope. There can be multiple components in a scope. 
 
 When you call `exit()` on that scope, every component attached to it is destroyed. All modules in 
-those components go with them, along with any stored singletons. The next time you call `component<>()` 
-for a destroyed component, a new instance is created.
+those components go with them, along with any stored singletons amd child components. The next time 
+you call `component<>()` for a destroyed component, a new instance is created.
 
 ---
 
