@@ -20,19 +20,32 @@ import com.afollestad.ulfberht.annotation.Component
 import com.afollestad.ulfberht.annotation.Inject
 import com.afollestad.ulfberht.annotation.Module
 import com.afollestad.ulfberht.annotation.Param
+import com.afollestad.ulfberht.annotation.Provides
 import com.afollestad.ulfberht.common.Logger
 import com.afollestad.ulfberht.component
 
-@Component(modules = [MyModule::class])
+data class SomeClass<A, B>(
+  val left: A,
+  val right: B
+)
+
+@Component(modules = [MyModule1::class, MyModule2::class])
 interface MyComponent {
   fun inject(main: Main)
 }
 
 @Module
-interface MyModule {
+interface MyModule1 {
   @Binds fun one(one: OneImpl): One
 
   @Binds fun two(two: TwoImpl): Two
+}
+
+@Module
+abstract class MyModule2 {
+  @Provides fun one(one: OneImpl): SomeClass<String, Boolean> = SomeClass("test", true)
+
+  @Provides fun two(two: TwoImpl): SomeClass<Int, Long> = SomeClass(6, 10L)
 }
 
 interface One {
@@ -55,8 +68,14 @@ class TwoImpl(
 
 class Main {
   @Inject lateinit var one: One
+  @Inject lateinit var someClass1: SomeClass<String, Boolean>
+  @Inject lateinit var someClass2: SomeClass<Int, Long>
 
-  fun doSomething() = one.doSomething()
+  fun doSomething() {
+    one.doSomething()
+    println(someClass1.toString())
+    println(someClass2.toString())
+  }
 
   init {
     component<MyComponent>(

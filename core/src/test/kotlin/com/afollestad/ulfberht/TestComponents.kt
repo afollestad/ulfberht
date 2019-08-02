@@ -48,9 +48,10 @@ class ComponentParent_Component(
 
   override fun <T : Any> getProvider(
     wantedType: KClass<T>,
+    genericArgs: Set<KClass<*>>,
     qualifier: String?,
     calledBy: BaseComponent?
-  ): Provider<T> = error("Not implemented")
+  ): Provider<T>? = error("Not implemented")
 }
 
 @Component(
@@ -72,6 +73,7 @@ class ComponentChild1_Component(
 
   override fun <T : Any> getProvider(
     wantedType: KClass<T>,
+    genericArgs: Set<KClass<*>>,
     qualifier: String?,
     calledBy: BaseComponent?
   ): Provider<T>? = error("Not implemented")
@@ -95,7 +97,8 @@ class ComponentChild2_Component(
 
   override fun <T : Any> getProvider(
     wantedType: KClass<T>,
+    genericArgs: Set<KClass<*>>,
     qualifier: String?,
     calledBy: BaseComponent?
-  ): Provider<T> = error("Not implemented")
+  ): Provider<T>? = error("Not implemented")
 }

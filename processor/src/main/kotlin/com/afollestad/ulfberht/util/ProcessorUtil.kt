@@ -19,7 +19,16 @@ import com.afollestad.ulfberht.annotation.Inject
 import com.afollestad.ulfberht.annotation.Param
 import com.afollestad.ulfberht.util.Names.MODULES_LIST_NAME
 import com.afollestad.ulfberht.util.Types.LIFECYCLE_OWNER
+import com.squareup.kotlinpoet.BOOLEAN
 import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.DOUBLE
+import com.squareup.kotlinpoet.FLOAT
+import com.squareup.kotlinpoet.INT
+import com.squareup.kotlinpoet.LIST
+import com.squareup.kotlinpoet.LONG
+import com.squareup.kotlinpoet.MAP
+import com.squareup.kotlinpoet.SET
+import com.squareup.kotlinpoet.STRING
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.asTypeName
 import org.jetbrains.annotations.NotNull
@@ -37,14 +46,15 @@ import javax.lang.model.element.TypeElement
 import javax.lang.model.element.VariableElement
 import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.TypeKind.DECLARED
+import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
+import com.squareup.kotlinpoet.SHORT
+import com.squareup.kotlinpoet.asClassName
 import javax.lang.model.type.TypeMirror
 import javax.tools.Diagnostic.Kind.ERROR
 import kotlin.reflect.KClass
 
 /** @author Aidan Follestad (@afollestad) */
 internal object ProcessorUtil {
-  private fun String.lastComponent(): String = substring(lastIndexOf('.') + 1)
-
   inline fun <reified T : Any> Element.getAnnotationMirror(): AnnotationMirror? {
     return annotationMirrors.firstOrNull { ann ->
       ann.annotationType.toString() == T::class.java.name
@@ -55,13 +65,33 @@ internal object ProcessorUtil {
     return getAnnotationMirror<T>() != null
   }
 
-  fun VariableElement.getFieldTypeName(): TypeName {
-    val nullable = getAnnotationMirror<Nullable>() != null &&
+  fun Element.isNullable(): Boolean {
+    return getAnnotationMirror<Nullable>() != null &&
         getAnnotationMirror<NotNull>() == null
-    return asType()
-        .correct()
-        .copy(nullable = nullable)
   }
+
+  fun TypeMirror.asTypeAndArgs(
+    env: ProcessingEnvironment,
+    nullable: Boolean = false
+  ): TypeAndArgs {
+    val baseType = env.typeUtils.erasure(this)
+        .correctTypeName(env)
+    val typeArgs: Array<TypeName> = if (this is DeclaredType) {
+      typeArguments.map { it.correctTypeName(env) }
+          .toTypedArray()
+    } else {
+      emptyArray()
+    }
+    return TypeAndArgs(
+        fullType = correctTypeName(env).copy(nullable = nullable),
+        erasedType = baseType.copy(nullable = nullable),
+        genericArgs = typeArgs
+    )
+  }
+
+  fun VariableElement.asTypeAndArgs(
+    env: ProcessingEnvironment
+  ): TypeAndArgs = asType().asTypeAndArgs(env, isNullable())
 
   fun Element.getFullClassName(
     env: ProcessingEnvironment,
@@ -99,22 +129,6 @@ internal object ProcessorUtil {
         .toString()
   }
 
-  private fun Element.getSuperClass(env: ProcessingEnvironment): TypeMirror? {
-    return env.typeUtils.directSupertypes(this.asType())
-        .asSequence()
-        .filter { it.kind == DECLARED }
-        .filterNot { it.asTypeName().toString() == "java.lang.Object" }
-        .singleOrNull()
-  }
-
-  fun TypeMirror.correct(): TypeName {
-    return if (toString() == "java.lang.String") {
-      ClassName("kotlin", "String")
-    } else {
-      asTypeName()
-    }
-  }
-
   fun Element.isAbstractClass(): Boolean {
     return kind == CLASS && ABSTRACT in modifiers
   }
@@ -133,13 +147,15 @@ internal object ProcessorUtil {
     )
   }
 
-  fun TypeElement.getConstructorParamsAndQualifiers(): List<Pair<TypeName, String?>> {
+  fun TypeElement.getConstructorParamsAndQualifiers(
+    env: ProcessingEnvironment
+  ): List<Pair<TypeName, String?>> {
     return getPrimaryConstructor()
         .parameters
         .map { param ->
           val qualifier = param.getAnnotationMirror<Param>()
               .qualifier
-          Pair(param.getFieldTypeName(), qualifier)
+          Pair(param.getFieldTypeName(env), qualifier)
         }
   }
 
@@ -204,10 +220,10 @@ internal object ProcessorUtil {
 
   fun <T : Any> T.applyIf(
     condition: Boolean,
-    block: T.() -> T
+    block: T.() -> Unit
   ): T {
     if (condition) {
-      return this.block()
+      this.block()
     }
     return this
   }
@@ -223,4 +239,87 @@ internal object ProcessorUtil {
       val qualifier: String = this?.getParameter("name") ?: return null
       return if (qualifier.isEmpty()) null else qualifier
     }
+
+  private fun Element.getSuperClass(env: ProcessingEnvironment): TypeMirror? {
+    return env.typeUtils.directSupertypes(this.asType())
+        .asSequence()
+        .filter { it.kind == DECLARED }
+        .filterNot { it.asTypeName().toString() == "java.lang.Object" }
+        .singleOrNull()
+  }
+
+  private fun TypeMirror.correctTypeName(
+    env: ProcessingEnvironment
+  ): TypeName {
+    var baseType: TypeMirror = this
+    var genericTypes: Array<TypeName> = emptyArray()
+    if (this is DeclaredType) {
+      baseType = env.typeUtils.erasure(this)
+      genericTypes = typeArguments
+          .map { arg -> arg.correctTypeName(env) }
+          .toTypedArray()
+    }
+    return when (baseType.toString()) {
+      "java.lang.String" -> STRING
+      "java.lang.Short" -> SHORT
+      "java.lang.Integer" -> INT
+      "java.lang.Long" -> LONG
+      "java.lang.Float" -> FLOAT
+      "java.lang.Double" -> DOUBLE
+      "java.lang.Boolean" -> BOOLEAN
+      "java.util.Set",
+      "java.util.AbstractSet",
+      "java.util.HashSet" -> SET.parameterizedBy(*genericTypes)
+      "java.util.Map",
+      "java.util.AbstractMap",
+      "java.util.HashMap" -> MAP.parameterizedBy(*genericTypes)
+      "java.util.List",
+      "java.util.AbstractList",
+      "java.util.ArrayList" -> LIST.parameterizedBy(*genericTypes)
+      else -> if (genericTypes.isNotEmpty()) {
+        baseType.asTypeElement()
+            .asClassName()
+            .parameterizedBy(*genericTypes)
+      } else {
+        asTypeName()
+      }
+    }
+  }
+
+  private fun VariableElement.getFieldTypeName(
+    env: ProcessingEnvironment
+  ): TypeName {
+    val nullable = getAnnotationMirror<Nullable>() != null &&
+        getAnnotationMirror<NotNull>() == null
+    return asType()
+        .correctTypeName(env)
+        .copy(nullable = nullable)
+  }
+
+  private fun String.lastComponent(): String = substring(lastIndexOf('.') + 1)
+}
+
+data class TypeAndArgs(
+  val fullType: TypeName,
+  val erasedType: TypeName,
+  val genericArgs: Array<TypeName>
+) {
+  val hasGenericArgs: Boolean = genericArgs.isNotEmpty()
+
+  override fun equals(other: Any?): Boolean {
+    if (this === other) return true
+    if (javaClass != other?.javaClass) return false
+    other as TypeAndArgs
+    if (fullType != other.fullType) return false
+    if (erasedType != other.erasedType) return false
+    if (!genericArgs.contentEquals(other.genericArgs)) return false
+    return true
+  }
+
+  override fun hashCode(): Int {
+    var result = fullType.hashCode()
+    result = 31 * result + erasedType.hashCode()
+    result = 31 * result + genericArgs.contentHashCode()
+    return result
+  }
 }

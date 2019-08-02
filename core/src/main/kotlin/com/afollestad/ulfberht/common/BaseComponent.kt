@@ -38,10 +38,12 @@ interface BaseComponent : ScopeObserver {
   @Suppress("UNCHECKED_CAST")
   fun <T : Any> get(
     wantedType: KClass<T>,
+    genericArgs: Set<KClass<*>> = emptySet(),
     qualifier: String? = null
   ): T {
     return getProvider(
         wantedType = wantedType,
+        genericArgs = genericArgs,
         qualifier = qualifier,
         calledBy = null
     )?.get() ?: error(
@@ -51,6 +53,7 @@ interface BaseComponent : ScopeObserver {
 
   fun <T : Any> getProvider(
     wantedType: KClass<T>,
+    genericArgs: Set<KClass<*>> = emptySet(),
     qualifier: String? = null,
     calledBy: BaseComponent? = null
   ): Provider<T>?

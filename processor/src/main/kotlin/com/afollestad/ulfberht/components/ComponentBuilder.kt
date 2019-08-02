@@ -21,6 +21,7 @@ import com.afollestad.ulfberht.util.Annotations.SUPPRESS_UNCHECKED_CAST
 import com.afollestad.ulfberht.util.Names.CALLED_BY
 import com.afollestad.ulfberht.util.Names.CLASS_HEADER
 import com.afollestad.ulfberht.util.Names.FACTORY_EXTENSION_NAME
+import com.afollestad.ulfberht.util.Names.GENERIC_ARGS
 import com.afollestad.ulfberht.util.Names.GET_PROVIDER_NAME
 import com.afollestad.ulfberht.util.Names.GET_RUNTIME_DEP_NAME
 import com.afollestad.ulfberht.util.Names.LIBRARY_PACKAGE
@@ -33,7 +34,8 @@ import com.afollestad.ulfberht.util.ProcessorUtil.asTypeElement
 import com.afollestad.ulfberht.util.ProcessorUtil.error
 import com.afollestad.ulfberht.util.ProcessorUtil.filterMethods
 import com.afollestad.ulfberht.util.ProcessorUtil.getAnnotationMirror
-import com.afollestad.ulfberht.util.ProcessorUtil.getFieldTypeName
+import com.afollestad.ulfberht.util.ProcessorUtil.applyIf
+import com.afollestad.ulfberht.util.ProcessorUtil.asTypeAndArgs
 import com.afollestad.ulfberht.util.ProcessorUtil.getFullClassName
 import com.afollestad.ulfberht.util.ProcessorUtil.getModulesTypes
 import com.afollestad.ulfberht.util.ProcessorUtil.getPackage
@@ -226,7 +228,7 @@ internal class ComponentBuilder(
               """
               if ($CALLED_BY === this) return null
               $MODULES_LIST_NAME.forEach { module ->
-                module.$GET_PROVIDER_NAME($WANTED_TYPE, $QUALIFIER, $CALLED_BY ?: this)
+                module.$GET_PROVIDER_NAME($WANTED_TYPE, $GENERIC_ARGS, $QUALIFIER, $CALLED_BY ?: this)
                     ?.let { return it }
               }
               """.trimIndent() + "\n"
@@ -239,7 +241,7 @@ internal class ComponentBuilder(
             if ($PARENT_NAME != null && $CALLED_BY === $PARENT_NAME) return null
             val runtimeProvider = $GET_RUNTIME_DEP_NAME<%T>($QUALIFIER)
                   ?.run { $FACTORY_EXTENSION_NAME { this } }
-            return runtimeProvider ?: $PARENT_NAME?.getProvider($WANTED_TYPE, $QUALIFIER, $CALLED_BY)
+            return runtimeProvider ?: $PARENT_NAME?.$GET_PROVIDER_NAME($WANTED_TYPE, $GENERIC_ARGS, $QUALIFIER, $CALLED_BY)
             """.trimIndent() + "\n",
             TYPE_VARIABLE_T
         )
@@ -248,6 +250,7 @@ internal class ComponentBuilder(
     return FunSpec.builder(GET_PROVIDER_NAME)
         .addAnnotation(SUPPRESS_UNCHECKED_CAST)
         .addParameter(WANTED_TYPE, KCLASS_OF_T)
+        .addParameter(GENERIC_ARGS, SET.parameterizedBy(KCLASS_OF_ANY))
         .addParameter(QUALIFIER, NULLABLE_KOTLIN_STRING)
         .addParameter(CALLED_BY, NULLABLE_BASE_COMPONENT)
         .addModifiers(OVERRIDE)
@@ -271,26 +274,35 @@ internal class ComponentBuilder(
     val paramName = parameter.simpleName.toString()
     val paramClass = parameter.asType()
         .asTypeElement()
+    var shouldSuppressUncheckedCast = false
 
     val code = CodeBlock.builder()
-    paramClass.enclosedElements
-        .injectedFieldsAndQualifiers()
-        .forEach { (field, qualifier) ->
-          if (qualifier != null) {
-            code.addStatement(
-                "$paramName.%N = get(%T::class, qualifier = %S)",
-                field.simpleName.toString(),
-                field.getFieldTypeName(),
-                qualifier
-            )
-          } else {
-            code.addStatement(
-                "$paramName.%N = get(%T::class)",
-                field.simpleName.toString(), field.getFieldTypeName()
-            )
-          }
+    for ((field, qualifier) in paramClass.enclosedElements.injectedFieldsAndQualifiers()) {
+      val fieldTypeAndArgs = field.asTypeAndArgs(environment)
+      shouldSuppressUncheckedCast = fieldTypeAndArgs.hasGenericArgs
+      code.apply {
+        add("$paramName.%N = ", field.simpleName)
+        add("get(%T::class", fieldTypeAndArgs.erasedType)
+      }
+      code.applyIf(fieldTypeAndArgs.hasGenericArgs) {
+        add(", $GENERIC_ARGS = setOf(")
+        for ((index, typeArg) in fieldTypeAndArgs.genericArgs.withIndex()) {
+          if (index > 0) add(", ")
+          add("%T::class", typeArg)
         }
+        add(")")
+      }
+      code.applyIf(qualifier != null) {
+        add(", $QUALIFIER = %S)", qualifier)
+      }
+      code.add(")")
+      code.applyIf(fieldTypeAndArgs.hasGenericArgs) {
+        add(" as %T", fieldTypeAndArgs.fullType)
+      }
+      code.add("\n")
+    }
 
+    // TODO move this to a separate module
     paramClass.getAnnotationMirror<ScopeOwner>()
         ?.let { scopeOwner ->
           if (!paramClass.isLifecycleOwner()) {
@@ -302,7 +314,7 @@ internal class ComponentBuilder(
 
           val ownedScope = scopeOwner.name
           code.add(
-            "\n" + """
+              "\n" + """
             $paramName.lifecycle.addObserver(object : %T {
               @%T(%T)
               fun onDestroy() {
@@ -321,6 +333,7 @@ internal class ComponentBuilder(
         }
 
     return FunSpec.builder(method.simpleName.toString())
+        .applyIf(shouldSuppressUncheckedCast) { addAnnotation(SUPPRESS_UNCHECKED_CAST) }
         .addModifiers(OVERRIDE)
         .addParameter(paramName, parameter.asType().asTypeName())
         .addCode(code.build())

@@ -36,6 +36,7 @@ import kotlin.reflect.KClass
 internal object Names {
   const val WANTED_TYPE = "wantedType"
   const val QUALIFIER = "qualifier"
+  const val GENERIC_ARGS = "genericArgs"
   const val CALLED_BY = "calledBy"
 
   const val GET_PROVIDER_NAME = "getProvider"
