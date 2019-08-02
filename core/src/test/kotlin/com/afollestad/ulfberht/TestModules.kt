@@ -28,6 +28,7 @@ abstract class TestBaseModule : BaseModule {
 
   override fun <T : Any> getProvider(
     wantedType: KClass<T>,
+    genericArgs: Set<KClass<*>>,
     qualifier: String?,
     calledBy: BaseComponent?
   ): Provider<T>? = null

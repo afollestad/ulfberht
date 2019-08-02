@@ -1,4 +1,5 @@
-0.2.0
+0.3.0
 
-* Fix: The internal `annotations` package needs to be published to Maven as well in order for 
-Gradle resolution to work.
+* Fixes to generics support. E.g., you could provide `SomeClass<String>` and `SomeClass<Int>` 
+separately and it'll work as you'd think.
+* Other bug fixes.
