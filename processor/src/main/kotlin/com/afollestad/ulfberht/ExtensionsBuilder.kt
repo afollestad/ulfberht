@@ -17,6 +17,7 @@ package com.afollestad.ulfberht
 
 import com.afollestad.ulfberht.util.Annotations.SUPPRESS_UNCHECKED_CAST
 import com.afollestad.ulfberht.util.Names.CACHED_PROVIDERS_NAME
+import com.afollestad.ulfberht.util.Names.CLASS_HEADER
 import com.afollestad.ulfberht.util.Names.IS_SUBCLASS_OF_EXTENSION_NAME
 import com.afollestad.ulfberht.util.Names.LIBRARY_PACKAGE
 import com.afollestad.ulfberht.util.Names.FACTORY_EXTENSION_NAME
@@ -58,6 +59,7 @@ internal class ExtensionsBuilder(
 
   private fun isSubClassOfFunction(): FunSpec {
     return FunSpec.builder(IS_SUBCLASS_OF_EXTENSION_NAME)
+        .addKdoc(CLASS_HEADER)
         .receiver(KCLASS_OF_ANY)
         .addModifiers(INLINE, INTERNAL)
         .addTypeVariable(REIFIED_TYPE_VARIABLE_T)
@@ -69,6 +71,7 @@ internal class ExtensionsBuilder(
   private fun factoryProviderFunction(): FunSpec {
     val parameterType = LambdaTypeName.get(returnType = TYPE_VARIABLE_T)
     return FunSpec.builder(FACTORY_EXTENSION_NAME)
+        .addKdoc(CLASS_HEADER)
         .addModifiers(INTERNAL)
         .addTypeVariable(TYPE_VARIABLE_T)
         .addParameter("block", parameterType)
@@ -80,6 +83,7 @@ internal class ExtensionsBuilder(
   private fun singletonProviderFunction(): FunSpec {
     val parameterType = LambdaTypeName.get(returnType = REIFIED_TYPE_VARIABLE_T)
     return FunSpec.builder(SINGLETON_PROVIDER_EXTENSION_NAME)
+        .addKdoc(CLASS_HEADER)
         .receiver(BASE_MODULE)
         .addAnnotation(SUPPRESS_UNCHECKED_CAST)
         .addModifiers(INLINE, INTERNAL)

@@ -23,6 +23,7 @@ import com.afollestad.ulfberht.util.Annotations.SUPPRESS_UNCHECKED_CAST
 import com.afollestad.ulfberht.util.DependencyGraph
 import com.afollestad.ulfberht.util.Names.CACHED_PROVIDERS_NAME
 import com.afollestad.ulfberht.util.Names.CALLED_BY
+import com.afollestad.ulfberht.util.Names.CLASS_HEADER
 import com.afollestad.ulfberht.util.Names.COMPONENT_PARAM_NAME
 import com.afollestad.ulfberht.util.Names.GET_PROVIDER_NAME
 import com.afollestad.ulfberht.util.Names.IS_SUBCLASS_OF_EXTENSION_NAME
@@ -148,8 +149,8 @@ internal class ModuleBuilder(
     isAbstractClass: Boolean,
     fullClassName: ClassName
   ): TypeSpec.Builder {
-    val builder = TypeSpec.classBuilder(fileName)
-    return builder
+    return TypeSpec.classBuilder(fileName)
+        .addKdoc(CLASS_HEADER)
         .addSuperinterface(BASE_MODULE)
         .applyIf(isAbstractClass) { superclass(fullClassName) }
         .primaryConstructor(

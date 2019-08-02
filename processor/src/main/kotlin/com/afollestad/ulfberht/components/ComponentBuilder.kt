@@ -19,6 +19,7 @@ import com.afollestad.ulfberht.annotation.Component
 import com.afollestad.ulfberht.annotation.ScopeOwner
 import com.afollestad.ulfberht.util.Annotations.SUPPRESS_UNCHECKED_CAST
 import com.afollestad.ulfberht.util.Names.CALLED_BY
+import com.afollestad.ulfberht.util.Names.CLASS_HEADER
 import com.afollestad.ulfberht.util.Names.FACTORY_EXTENSION_NAME
 import com.afollestad.ulfberht.util.Names.GET_PROVIDER_NAME
 import com.afollestad.ulfberht.util.Names.GET_RUNTIME_DEP_NAME
@@ -123,6 +124,7 @@ internal class ComponentBuilder(
     moduleTypes: Sequence<TypeName>
   ): Builder {
     return TypeSpec.classBuilder(fileName)
+        .addKdoc(CLASS_HEADER)
         .addSuperinterface(superInterface)
         .addSuperinterface(BASE_COMPONENT)
         .primaryConstructor(typeConstructor())
