@@ -24,14 +24,14 @@ import com.afollestad.ulfberhtsample.api.RealSession
 import com.afollestad.ulfberhtsample.api.Session
 
 @Module
-abstract class AppProvideModules {
+abstract class AppProvideModule {
   @Provides(API_KEY) fun apiKey(): String {
     return "o3riuhfoij30p9i2ug34igub"
   }
 }
 
 @Module
-interface AppBindModules {
+interface AppBindModule {
   @Binds @Singleton
   fun session(impl: RealSession): Session
 }

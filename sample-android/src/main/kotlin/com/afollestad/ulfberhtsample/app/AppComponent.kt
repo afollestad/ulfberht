@@ -17,7 +17,7 @@ package com.afollestad.ulfberhtsample.app
 
 import com.afollestad.ulfberht.annotation.Component
 
-@Component(modules = [AppProvideModules::class, AppBindModules::class])
+@Component(modules = [AppProvideModule::class, AppBindModule::class])
 interface AppComponent {
   fun inject(app: App)
 }

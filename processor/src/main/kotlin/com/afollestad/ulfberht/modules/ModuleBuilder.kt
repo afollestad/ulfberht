@@ -17,7 +17,6 @@ package com.afollestad.ulfberht.modules
 
 import com.afollestad.ulfberht.annotation.Binds
 import com.afollestad.ulfberht.annotation.Module
-import com.afollestad.ulfberht.annotation.Param
 import com.afollestad.ulfberht.annotation.Provides
 import com.afollestad.ulfberht.annotation.Singleton
 import com.afollestad.ulfberht.util.Annotations.SUPPRESS_UNCHECKED_CAST
@@ -46,6 +45,7 @@ import com.afollestad.ulfberht.util.ProcessorUtil.isAbstractClass
 import com.afollestad.ulfberht.util.ProcessorUtil.qualifier
 import com.afollestad.ulfberht.util.ProcessorUtil.asFileName
 import com.afollestad.ulfberht.util.ProcessorUtil.error
+import com.afollestad.ulfberht.util.ProcessorUtil.getMethodParamsAndQualifiers
 import com.afollestad.ulfberht.util.Types.BASE_COMPONENT
 import com.afollestad.ulfberht.util.Types.BASE_MODULE
 import com.afollestad.ulfberht.util.Types.KCLASS_OF_T
@@ -68,7 +68,6 @@ import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.STRING
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
-import com.squareup.kotlinpoet.asTypeName
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.Element
 import javax.lang.model.element.ElementKind.INTERFACE
@@ -226,10 +225,10 @@ internal class ModuleBuilder(
       environment.error("$method: @Binds methods must have a single parameter.")
       return null
     }
-    val parameter = method.parameters.single()
-    val parameterType = parameter.asType()
-    val returnType = method.returnType
+    val parameterType = method.parameters.single()
+        .asType()
 
+    val returnType = method.returnType
     if (!environment.typeUtils.isSubtype(parameterType, returnType)) {
       environment.error(
           "@Binds method ${method.simpleName}() parameter of type " +
@@ -239,39 +238,26 @@ internal class ModuleBuilder(
     }
 
     val correctedReturnType = returnType.correct()
-    val providerReturnType = PROVIDER.parameterizedBy(correctedReturnType)
     val methodName = method.simpleName.toString()
 
     val providerMethodName = method.providerGetName()
-    val qualifierName = method.getAnnotationMirror<Binds>()
-        .qualifier
     providedTypeMethodNameMap[correctedReturnType] = MethodNameAndQualifier(
         name = methodName,
-        qualifier = qualifierName
+        qualifier = method.getAnnotationMirror<Binds>().qualifier
     )
 
     val fieldTypeConstructorParams = parameterType
         .asTypeElement()
         .getConstructorParamsAndQualifiers()
-    val indent = fieldTypeConstructorParams.indent
-    val paramBreak = fieldTypeConstructorParams.lineBreak
-    val factoryNamePrefix = if (fieldTypeConstructorParams.size > 1) "  " else " "
 
     val code = CodeBlock.builder()
         .apply {
+          val paramBreak = fieldTypeConstructorParams.lineBreak
+          val factoryNamePrefix = if (fieldTypeConstructorParams.size > 1) "  " else " "
+
           add("return %N {$paramBreak$factoryNamePrefix%T(", providerMethodName, parameterType)
-          for ((index, typeAndQualifier) in fieldTypeConstructorParams.withIndex()) {
-            val (type, qualifier) = typeAndQualifier
-            if (index > 0) add(",")
-            if (qualifier != null) {
-              add("$paramBreak${indent}get(%T::class, qualifier = %S)", type, qualifier)
-            } else {
-              add("$paramBreak${indent}get(%T::class)", type)
-            }
-            if (!dependencyGraph.put(correctedReturnType, type)) {
-              // Dependency issue detected
-              return null
-            }
+          if (!construct(fieldTypeConstructorParams, correctedReturnType)) {
+            return null
           }
           if (fieldTypeConstructorParams.size > 1) add("\n  ")
           add(") $paramBreak}\n")
@@ -280,7 +266,7 @@ internal class ModuleBuilder(
 
     return FunSpec.builder(methodName)
         .addModifiers(PRIVATE)
-        .returns(providerReturnType)
+        .returns(PROVIDER.parameterizedBy(correctedReturnType))
         .addCode(code)
         .build()
   }
@@ -292,38 +278,24 @@ internal class ModuleBuilder(
     val originalMethodName = method.simpleName.toString()
     val newMethodName = "$PROVIDE_FUNCTION_PREFIX${originalMethodName.capitalize()}"
     val correctedReturnType = method.returnType.correct()
-    val providerReturnType = PROVIDER.parameterizedBy(correctedReturnType)
 
-    val providerMethodName = method.providerGetName()
-    val qualifierName = method.getAnnotationMirror<Provides>()
-        .qualifier
     providedTypeMethodNameMap[correctedReturnType] = MethodNameAndQualifier(
         name = newMethodName,
-        qualifier = qualifierName
+        qualifier = method.getAnnotationMirror<Provides>().qualifier
     )
-
-    val indent = method.parameters.indent
-    val paramBreak = method.parameters.lineBreak
-    val factoryNamePrefix = if (method.parameters.size > 1) "  " else " "
 
     val code = CodeBlock.builder()
         .apply {
-          add("return %N {$paramBreak$factoryNamePrefix%N(", providerMethodName, originalMethodName)
-          for ((index, param) in method.parameters.withIndex()) {
-            val paramType = param.asType()
-                .asTypeName()
-            val qualifier = method.getAnnotationMirror<Param>()
-                .qualifier
-            if (index > 0) add(",")
-            if (qualifier != null) {
-              add("$paramBreak${indent}get(%T::class, qualifier = %S)", paramType, qualifier)
-            } else {
-              add("$paramBreak${indent}get(%T::class)", paramType)
-            }
-            if (!dependencyGraph.put(correctedReturnType, paramType)) {
-              // Dependency issue detected
-              return null
-            }
+          val paramBreak = method.parameters.lineBreak
+          val factoryNamePrefix = if (method.parameters.size > 1) "  " else " "
+
+          add(
+              "return %N {$paramBreak$factoryNamePrefix%N(",
+              method.providerGetName(),
+              originalMethodName
+          )
+          if (!construct(method.getMethodParamsAndQualifiers(), correctedReturnType)) {
+            return null
           }
           if (method.parameters.size > 1) add("\n  ")
           add(") $paramBreak}\n")
@@ -332,9 +304,34 @@ internal class ModuleBuilder(
 
     return FunSpec.builder(newMethodName)
         .addModifiers(PRIVATE)
-        .returns(providerReturnType)
+        .returns(PROVIDER.parameterizedBy(correctedReturnType))
         .addCode(code)
         .build()
+  }
+
+  private fun CodeBlock.Builder.construct(
+    params: List<Pair<TypeName, String?>>,
+    returnType: TypeName
+  ): Boolean {
+    apply {
+      val indent = params.indent
+      val paramBreak = params.lineBreak
+
+      for ((index, typeAndQualifier) in params.withIndex()) {
+        val (type, qualifier) = typeAndQualifier
+        if (index > 0) add(",")
+        if (qualifier != null) {
+          add("$paramBreak${indent}get(%T::class, qualifier = %S)", type, qualifier)
+        } else {
+          add("$paramBreak${indent}get(%T::class)", type)
+        }
+        if (!dependencyGraph.put(returnType, type)) {
+          // Dependency issue detected
+          return false
+        }
+      }
+    }
+    return true
   }
 
   private val List<*>.indent get() = if (size > 1) "    " else ""

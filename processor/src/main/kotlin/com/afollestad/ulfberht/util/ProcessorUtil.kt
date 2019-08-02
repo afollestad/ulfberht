@@ -136,11 +136,21 @@ internal object ProcessorUtil {
   fun TypeElement.getConstructorParamsAndQualifiers(): List<Pair<TypeName, String?>> {
     return getPrimaryConstructor()
         .parameters
-        .map {
-          val qualifier = it.getAnnotationMirror<Param>()
-              ?.qualifier
-          Pair(it.getFieldTypeName(), qualifier)
+        .map { param ->
+          val qualifier = param.getAnnotationMirror<Param>()
+              .qualifier
+          Pair(param.getFieldTypeName(), qualifier)
         }
+  }
+
+  fun ExecutableElement.getMethodParamsAndQualifiers(): List<Pair<TypeName, String?>> {
+    return parameters.map { param ->
+      val paramType = param.asType()
+          .asTypeName()
+      val qualifier = param.getAnnotationMirror<Param>()
+          .qualifier
+      Pair(paramType, qualifier)
+    }
   }
 
   @Suppress("UNCHECKED_CAST")
