@@ -301,17 +301,21 @@ internal class ComponentBuilder(
 
           val ownedScope = scopeOwner.name
           code.add(
-              "\n" + """
+            "\n" + """
             val scope: %T = %T(%S)
             $paramName.lifecycle.addObserver(object : %T {
               @%T(%T)
-              fun onDestroy() = scope.exit()
+              fun onDestroy() {
+                scope.exit()
+                %T.log(%P)
+              }
             })
             %T.log(%P)
             """.trimIndent() + "\n",
               SCOPE, GET_SCOPE_METHOD, ownedScope,
               LIFECYCLE_OBSERVER,
               ON_LIFECYCLE_EVENT, LIFECYCLE_EVENT_ON_DESTROY,
+              LOGGER, "$$paramName destroyed scope $ownedScope",
               LOGGER, "$$paramName is now the owner of scope $ownedScope"
           )
         }
