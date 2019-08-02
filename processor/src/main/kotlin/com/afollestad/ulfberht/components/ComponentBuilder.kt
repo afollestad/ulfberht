@@ -52,7 +52,6 @@ import com.afollestad.ulfberht.util.Types.NULLABLE_BASE_COMPONENT
 import com.afollestad.ulfberht.util.Types.NULLABLE_KOTLIN_STRING
 import com.afollestad.ulfberht.util.Types.ON_LIFECYCLE_EVENT
 import com.afollestad.ulfberht.util.Types.PROVIDER_OF_T_NULLABLE
-import com.afollestad.ulfberht.util.Types.SCOPE
 import com.afollestad.ulfberht.util.Types.TYPE_VARIABLE_T
 import com.squareup.kotlinpoet.ANY
 import com.squareup.kotlinpoet.ClassName
@@ -302,19 +301,18 @@ internal class ComponentBuilder(
           val ownedScope = scopeOwner.name
           code.add(
             "\n" + """
-            val scope: %T = %T(%S)
             $paramName.lifecycle.addObserver(object : %T {
               @%T(%T)
               fun onDestroy() {
-                scope.exit()
+                %T(%S).exit()
                 %T.log(%P)
               }
             })
             %T.log(%P)
             """.trimIndent() + "\n",
-              SCOPE, GET_SCOPE_METHOD, ownedScope,
               LIFECYCLE_OBSERVER,
               ON_LIFECYCLE_EVENT, LIFECYCLE_EVENT_ON_DESTROY,
+              GET_SCOPE_METHOD, ownedScope,
               LOGGER, "$$paramName destroyed scope $ownedScope",
               LOGGER, "$$paramName is now the owner of scope $ownedScope"
           )
