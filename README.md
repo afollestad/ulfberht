@@ -47,6 +47,11 @@ lightweight, with less Boilerplate code and more automation. I wanted something 
 based rather than reflection-based, while still being written in Kotlin. And I wanted better built-in 
 scoping support, especially on Android. _This is the result._
 
+You may be wondering what makes this library different than KOIN or other Kotlin "DI" libraries? 
+Ulfberht uses annotation processing to do actual dependency injection vs. plain service location. 
+A big example of this difference is that you don't need to manually tell this library how to fill 
+constructor parameters, they are filled for you by generated code.
+
 ---
  
 # Gradle Dependency
