@@ -200,7 +200,7 @@ internal class ModuleBuilder(
 
     code.apply {
       addStatement(
-          "  else -> %N.getProvider($WANTED_TYPE, $QUALIFIER, $CALLED_BY)",
+          "  else -> %N.$GET_PROVIDER_NAME($WANTED_TYPE, $QUALIFIER, $CALLED_BY)",
           COMPONENT_PARAM_NAME
       )
       add("}\n")

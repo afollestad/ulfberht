@@ -226,7 +226,7 @@ internal class ComponentBuilder(
               """
               if ($CALLED_BY === this) return null
               $MODULES_LIST_NAME.forEach { module ->
-                module.getProvider($WANTED_TYPE, $QUALIFIER, $CALLED_BY ?: this)
+                module.$GET_PROVIDER_NAME($WANTED_TYPE, $QUALIFIER, $CALLED_BY ?: this)
                     ?.let { return it }
               }
               """.trimIndent() + "\n"
