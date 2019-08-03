@@ -339,7 +339,7 @@ internal class ModuleBuilder(
 
         add("$paramBreak${indent}get(%T::class", type)
         if (typeAndArgs.hasGenericArgs) {
-          add(", $GENERIC_ARGS = setOf(")
+          add(", setOf(")
           for ((argIndex, typeArg) in typeAndArgs.genericArgs.withIndex()) {
             if (argIndex > 0) add(", ")
             add("%T::class", typeArg)

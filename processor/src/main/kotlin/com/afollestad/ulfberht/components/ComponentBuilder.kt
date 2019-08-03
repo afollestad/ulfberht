@@ -285,7 +285,7 @@ internal class ComponentBuilder(
         add("get(%T::class", fieldTypeAndArgs.erasedType)
       }
       code.applyIf(fieldTypeAndArgs.hasGenericArgs) {
-        add(", $GENERIC_ARGS = setOf(")
+        add(", setOf(")
         for ((index, typeArg) in fieldTypeAndArgs.genericArgs.withIndex()) {
           if (index > 0) add(", ")
           add("%T::class", typeArg)
