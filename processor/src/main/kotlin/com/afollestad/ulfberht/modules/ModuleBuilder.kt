@@ -188,21 +188,24 @@ internal class ModuleBuilder(
     for ((typeAndArgs, getterAndQualifier) in providedTypeMethodNameMap) {
       val (getterName, qualifier) = getterAndQualifier
       code.add("  $WANTED_TYPE.$IS_SUBCLASS_OF_EXTENSION_NAME<%T>()", typeAndArgs.fullType)
-      code.applyIf(qualifier != null) {
-        add(" && %S == $QUALIFIER", qualifier)
-      }
       code.applyIf(typeAndArgs.hasGenericArgs) {
-        add(" && setOf(")
+        add(" && $GENERIC_ARGS == setOf(")
         for ((index, typeArg) in typeAndArgs.genericArgs.withIndex()) {
           if (index > 0) add(", ")
           add("%T::class", typeArg)
         }
-        add(") == $GENERIC_ARGS")
+        add(")")
       }
-      code.add(
-          " -> %N() as %T\n",
-          getterName, PROVIDER_OF_T
-      )
+      code.applyIf(!typeAndArgs.hasGenericArgs) {
+        add(" && $GENERIC_ARGS.isEmpty()")
+      }
+      code.applyIf(qualifier != null) {
+        add(" && $QUALIFIER == %S", qualifier)
+      }
+      code.applyIf(qualifier == null) {
+        add(" && $QUALIFIER == null")
+      }
+      code.add(" -> %N() as %T\n", getterName, PROVIDER_OF_T)
     }
     code.apply {
       addStatement(
