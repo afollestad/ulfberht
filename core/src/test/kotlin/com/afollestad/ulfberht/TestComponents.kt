@@ -47,7 +47,7 @@ class ComponentParent_Component(
   override var runtimeDependencies: Map<String?, Any>? = null
 
   override fun <T : Any> getProvider(
-    wantedType: KClass<T>,
+    wantedType: KClass<*>,
     genericArgs: Set<KClass<*>>,
     qualifier: String?,
     calledBy: BaseComponent?
@@ -72,7 +72,7 @@ class ComponentChild1_Component(
   override var runtimeDependencies: Map<String?, Any>? = null
 
   override fun <T : Any> getProvider(
-    wantedType: KClass<T>,
+    wantedType: KClass<*>,
     genericArgs: Set<KClass<*>>,
     qualifier: String?,
     calledBy: BaseComponent?
@@ -96,7 +96,7 @@ class ComponentChild2_Component(
   override var runtimeDependencies: Map<String?, Any>? = null
 
   override fun <T : Any> getProvider(
-    wantedType: KClass<T>,
+    wantedType: KClass<*>,
     genericArgs: Set<KClass<*>>,
     qualifier: String?,
     calledBy: BaseComponent?

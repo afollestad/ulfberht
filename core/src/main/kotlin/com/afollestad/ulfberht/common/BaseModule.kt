@@ -31,11 +31,11 @@ interface BaseModule {
 
   /** Retrieves a provided class via its [Provider]. */
   fun <T : Any> get(
-    wantedType: KClass<T>,
+    wantedType: KClass<*>,
     genericArgs: Set<KClass<*>> = emptySet(),
     qualifier: String? = null
   ): T {
-    return getProvider(
+    return getProvider<T>(
         wantedType = wantedType,
         qualifier = qualifier,
         calledBy = null
@@ -46,7 +46,7 @@ interface BaseModule {
 
   /** Retrieves a [Provider] for a provided class. */
   fun <T : Any> getProvider(
-    wantedType: KClass<T>,
+    wantedType: KClass<*>,
     genericArgs: Set<KClass<*>> = emptySet(),
     qualifier: String? = null,
     calledBy: BaseComponent? = null

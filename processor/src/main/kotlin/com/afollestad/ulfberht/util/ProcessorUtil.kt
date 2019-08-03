@@ -15,9 +15,13 @@
  */
 package com.afollestad.ulfberht.util
 
+import com.afollestad.ulfberht.annotation.Binds
 import com.afollestad.ulfberht.annotation.Inject
 import com.afollestad.ulfberht.annotation.Param
+import com.afollestad.ulfberht.annotation.Provides
 import com.afollestad.ulfberht.util.Names.MODULES_LIST_NAME
+import com.afollestad.ulfberht.util.ProcessorUtil.getAnnotationMirror
+import com.afollestad.ulfberht.util.ProcessorUtil.qualifier
 import com.afollestad.ulfberht.util.Types.LIFECYCLE_OWNER
 import com.squareup.kotlinpoet.BOOLEAN
 import com.squareup.kotlinpoet.ClassName
@@ -65,14 +69,10 @@ internal object ProcessorUtil {
     return getAnnotationMirror<T>() != null
   }
 
-  fun Element.isNullable(): Boolean {
-    return getAnnotationMirror<Nullable>() != null &&
-        getAnnotationMirror<NotNull>() == null
-  }
-
   fun TypeMirror.asTypeAndArgs(
     env: ProcessingEnvironment,
-    nullable: Boolean = false
+    nullable: Boolean = false,
+    qualifier: String?
   ): TypeAndArgs {
     val baseType = env.typeUtils.erasure(this)
         .correctTypeName(env)
@@ -85,13 +85,33 @@ internal object ProcessorUtil {
     return TypeAndArgs(
         fullType = correctTypeName(env).copy(nullable = nullable),
         erasedType = baseType.copy(nullable = nullable),
-        genericArgs = typeArgs
+        genericArgs = typeArgs,
+        qualifier = qualifier
     )
   }
 
   fun VariableElement.asTypeAndArgs(
     env: ProcessingEnvironment
-  ): TypeAndArgs = asType().asTypeAndArgs(env, isNullable())
+  ): TypeAndArgs {
+    val qualifier = getAnnotationMirror<Param>().qualifier
+    return asType().asTypeAndArgs(
+        env = env,
+        nullable = isNullable(),
+        qualifier = qualifier
+    )
+  }
+
+  fun ExecutableElement.returnTypeAsTypeAndArgs(
+    env: ProcessingEnvironment
+  ): TypeAndArgs {
+    val qualifier = (getAnnotationMirror<Provides>() ?: getAnnotationMirror<Binds>())
+        .qualifier
+    return returnType.asTypeAndArgs(
+        env = env,
+        nullable = isNullable(),
+        qualifier = qualifier
+    )
+  }
 
   fun Element.getFullClassName(
     env: ProcessingEnvironment,
@@ -147,26 +167,21 @@ internal object ProcessorUtil {
     )
   }
 
-  fun TypeElement.getConstructorParamsAndQualifiers(
+  fun TypeElement.getConstructorParamsTypesAndArgs(
     env: ProcessingEnvironment
-  ): List<Pair<TypeName, String?>> {
+  ): Sequence<TypeAndArgs> {
     return getPrimaryConstructor()
         .parameters
-        .map { param ->
-          val qualifier = param.getAnnotationMirror<Param>()
-              .qualifier
-          Pair(param.getFieldTypeName(env), qualifier)
-        }
+        .asSequence()
+        .map { it.asTypeAndArgs(env) }
   }
 
-  fun ExecutableElement.getMethodParamsAndQualifiers(): List<Pair<TypeName, String?>> {
-    return parameters.map { param ->
-      val paramType = param.asType()
-          .asTypeName()
-      val qualifier = param.getAnnotationMirror<Param>()
-          .qualifier
-      Pair(paramType, qualifier)
-    }
+  fun ExecutableElement.getMethodParamsTypeAndArgs(
+    env: ProcessingEnvironment
+  ): Sequence<TypeAndArgs> {
+    return parameters
+        .asSequence()
+        .map { it.asTypeAndArgs(env) }
   }
 
   @Suppress("UNCHECKED_CAST")
@@ -296,13 +311,19 @@ internal object ProcessorUtil {
         .copy(nullable = nullable)
   }
 
+  private fun Element.isNullable(): Boolean {
+    return getAnnotationMirror<Nullable>() != null &&
+        getAnnotationMirror<NotNull>() == null
+  }
+
   private fun String.lastComponent(): String = substring(lastIndexOf('.') + 1)
 }
 
 data class TypeAndArgs(
   val fullType: TypeName,
   val erasedType: TypeName,
-  val genericArgs: Array<TypeName>
+  val genericArgs: Array<TypeName>,
+  val qualifier: String?
 ) {
   val hasGenericArgs: Boolean = genericArgs.isNotEmpty()
 
@@ -313,6 +334,7 @@ data class TypeAndArgs(
     if (fullType != other.fullType) return false
     if (erasedType != other.erasedType) return false
     if (!genericArgs.contentEquals(other.genericArgs)) return false
+    if (qualifier != other.qualifier) return false
     return true
   }
 
@@ -320,6 +342,7 @@ data class TypeAndArgs(
     var result = fullType.hashCode()
     result = 31 * result + erasedType.hashCode()
     result = 31 * result + genericArgs.contentHashCode()
+    result = 31 * result + (qualifier?.hashCode() ?: 0)
     return result
   }
 }

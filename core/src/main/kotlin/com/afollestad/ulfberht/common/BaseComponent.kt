@@ -41,7 +41,7 @@ interface BaseComponent : ScopeObserver {
     genericArgs: Set<KClass<*>> = emptySet(),
     qualifier: String? = null
   ): T {
-    return getProvider(
+    return getProvider<T>(
         wantedType = wantedType,
         genericArgs = genericArgs,
         qualifier = qualifier,
@@ -52,7 +52,7 @@ interface BaseComponent : ScopeObserver {
   }
 
   fun <T : Any> getProvider(
-    wantedType: KClass<T>,
+    wantedType: KClass<*>,
     genericArgs: Set<KClass<*>> = emptySet(),
     qualifier: String? = null,
     calledBy: BaseComponent? = null

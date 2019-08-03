@@ -27,7 +27,7 @@ abstract class TestBaseModule : BaseModule {
   override val cachedProviders: MutableMap<String, Provider<*>> = mutableMapOf()
 
   override fun <T : Any> getProvider(
-    wantedType: KClass<T>,
+    wantedType: KClass<*>,
     genericArgs: Set<KClass<*>>,
     qualifier: String?,
     calledBy: BaseComponent?

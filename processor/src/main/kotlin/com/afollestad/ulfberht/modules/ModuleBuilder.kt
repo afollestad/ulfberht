@@ -25,34 +25,32 @@ import com.afollestad.ulfberht.util.Names.CACHED_PROVIDERS_NAME
 import com.afollestad.ulfberht.util.Names.CALLED_BY
 import com.afollestad.ulfberht.util.Names.CLASS_HEADER
 import com.afollestad.ulfberht.util.Names.COMPONENT_PARAM_NAME
+import com.afollestad.ulfberht.util.Names.FACTORY_EXTENSION_NAME
+import com.afollestad.ulfberht.util.Names.GENERIC_ARGS
 import com.afollestad.ulfberht.util.Names.GET_PROVIDER_NAME
 import com.afollestad.ulfberht.util.Names.IS_SUBCLASS_OF_EXTENSION_NAME
 import com.afollestad.ulfberht.util.Names.LIBRARY_PACKAGE
 import com.afollestad.ulfberht.util.Names.MODULE_NAME_SUFFIX
-import com.afollestad.ulfberht.util.Names.FACTORY_EXTENSION_NAME
-import com.afollestad.ulfberht.util.Names.GENERIC_ARGS
 import com.afollestad.ulfberht.util.Names.QUALIFIER
 import com.afollestad.ulfberht.util.Names.SINGLETON_PROVIDER_EXTENSION_NAME
 import com.afollestad.ulfberht.util.Names.WANTED_TYPE
 import com.afollestad.ulfberht.util.ProcessorUtil.applyIf
+import com.afollestad.ulfberht.util.ProcessorUtil.asFileName
 import com.afollestad.ulfberht.util.ProcessorUtil.asTypeElement
+import com.afollestad.ulfberht.util.ProcessorUtil.error
 import com.afollestad.ulfberht.util.ProcessorUtil.filterMethods
 import com.afollestad.ulfberht.util.ProcessorUtil.getAnnotationMirror
+import com.afollestad.ulfberht.util.ProcessorUtil.getConstructorParamsTypesAndArgs
 import com.afollestad.ulfberht.util.ProcessorUtil.getFullClassName
+import com.afollestad.ulfberht.util.ProcessorUtil.getMethodParamsTypeAndArgs
 import com.afollestad.ulfberht.util.ProcessorUtil.getPackage
-import com.afollestad.ulfberht.util.ProcessorUtil.getConstructorParamsAndQualifiers
 import com.afollestad.ulfberht.util.ProcessorUtil.hasAnnotationMirror
 import com.afollestad.ulfberht.util.ProcessorUtil.isAbstractClass
-import com.afollestad.ulfberht.util.ProcessorUtil.qualifier
-import com.afollestad.ulfberht.util.ProcessorUtil.asFileName
-import com.afollestad.ulfberht.util.ProcessorUtil.error
-import com.afollestad.ulfberht.util.ProcessorUtil.getMethodParamsAndQualifiers
-import com.afollestad.ulfberht.util.ProcessorUtil.asTypeAndArgs
+import com.afollestad.ulfberht.util.ProcessorUtil.returnTypeAsTypeAndArgs
 import com.afollestad.ulfberht.util.TypeAndArgs
 import com.afollestad.ulfberht.util.Types.BASE_COMPONENT
 import com.afollestad.ulfberht.util.Types.BASE_MODULE
 import com.afollestad.ulfberht.util.Types.KCLASS_OF_ANY
-import com.afollestad.ulfberht.util.Types.KCLASS_OF_T
 import com.afollestad.ulfberht.util.Types.NULLABLE_BASE_COMPONENT
 import com.afollestad.ulfberht.util.Types.NULLABLE_KOTLIN_STRING
 import com.afollestad.ulfberht.util.Types.PROVIDER
@@ -218,7 +216,7 @@ internal class ModuleBuilder(
         .addAnnotation(SUPPRESS_UNCHECKED_CAST)
         .addModifiers(OVERRIDE)
         .addTypeVariable(TYPE_VARIABLE_T)
-        .addParameter(WANTED_TYPE, KCLASS_OF_T)
+        .addParameter(WANTED_TYPE, KCLASS_OF_ANY)
         .addParameter(GENERIC_ARGS, SET.parameterizedBy(KCLASS_OF_ANY))
         .addParameter(QUALIFIER, NULLABLE_KOTLIN_STRING)
         .addParameter(CALLED_BY, NULLABLE_BASE_COMPONENT)
@@ -238,39 +236,39 @@ internal class ModuleBuilder(
     val parameterType = method.parameters.single()
         .asType()
 
-    val returnType = method.returnType
-    if (!environment.typeUtils.isSubtype(parameterType, returnType)) {
+    if (!environment.typeUtils.isSubtype(parameterType, method.returnType)) {
       environment.error(
           "@Binds method ${method.simpleName}() parameter of type " +
-              "$parameterType must be a subclass of $returnType"
+              "$parameterType must be a subclass of ${method.returnType}"
       )
       return null
     }
 
-    val returnTypeAndArgs = returnType.asTypeAndArgs(environment)
+    val returnTypeAndArgs = method.returnTypeAsTypeAndArgs(environment)
     val methodName = method.simpleName.toString()
     val providerMethodName = method.providerGetName()
 
     providedTypeMethodNameMap[returnTypeAndArgs] =
       MethodNameAndQualifier(
           name = methodName,
-          qualifier = method.getAnnotationMirror<Binds>().qualifier
+          qualifier = returnTypeAndArgs.qualifier
       )
 
     val fieldTypeConstructorParams = parameterType
         .asTypeElement()
-        .getConstructorParamsAndQualifiers(environment)
+        .getConstructorParamsTypesAndArgs(environment)
 
     val code = CodeBlock.builder()
         .apply {
           val paramBreak = fieldTypeConstructorParams.lineBreak
-          val factoryNamePrefix = if (fieldTypeConstructorParams.size > 1) "  " else " "
+          val factoryNamePrefix = if (fieldTypeConstructorParams.count() > 1) "  " else " "
 
           add("return %N {$paramBreak$factoryNamePrefix%T(", providerMethodName, parameterType)
           if (!construct(fieldTypeConstructorParams, returnTypeAndArgs.fullType)) {
             return null
           }
-          if (fieldTypeConstructorParams.size > 1) add("\n  ")
+
+          if (fieldTypeConstructorParams.count() > 1) add("\n  ")
           add(") $paramBreak}\n")
         }
         .build()
@@ -288,27 +286,29 @@ internal class ModuleBuilder(
   ): FunSpec? {
     val originalMethodName = method.simpleName.toString()
     val newMethodName = "$PROVIDE_FUNCTION_PREFIX${originalMethodName.capitalize()}"
-    val returnTypeAndArgs = method.returnType.asTypeAndArgs(environment)
+    val returnTypeAndArgs = method.returnTypeAsTypeAndArgs(environment)
 
     providedTypeMethodNameMap[returnTypeAndArgs] =
       MethodNameAndQualifier(
           name = newMethodName,
-          qualifier = method.getAnnotationMirror<Provides>().qualifier
+          qualifier = returnTypeAndArgs.qualifier
       )
 
     val code = CodeBlock.builder()
         .apply {
-          val paramBreak = method.parameters.lineBreak
-          val factoryNamePrefix = if (method.parameters.size > 1) "  " else " "
+          val methodParams = method.getMethodParamsTypeAndArgs(environment)
+          val paramBreak = methodParams.lineBreak
+          val factoryNamePrefix = if (methodParams.count() > 1) "  " else " "
 
           add(
               "return %N {$paramBreak$factoryNamePrefix%N(",
               method.providerGetName(),
               originalMethodName
           )
-          if (!construct(method.getMethodParamsAndQualifiers(), returnTypeAndArgs.fullType)) {
+          if (!construct(methodParams, returnTypeAndArgs.fullType)) {
             return null
           }
+
           if (method.parameters.size > 1) add("\n  ")
           add(") $paramBreak}\n")
         }
@@ -322,21 +322,32 @@ internal class ModuleBuilder(
   }
 
   private fun CodeBlock.Builder.construct(
-    params: List<Pair<TypeName, String?>>,
+    params: Sequence<TypeAndArgs>,
     returnType: TypeName
   ): Boolean {
     apply {
       val indent = params.indent
       val paramBreak = params.lineBreak
 
-      for ((index, typeAndQualifier) in params.withIndex()) {
-        val (type, qualifier) = typeAndQualifier
-        if (index > 0) add(",")
-        if (qualifier != null) {
-          add("$paramBreak${indent}get(%T::class, $QUALIFIER = %S)", type, qualifier)
-        } else {
-          add("$paramBreak${indent}get(%T::class)", type)
+      for ((paramIndex, typeAndArgs) in params.withIndex()) {
+        val type = typeAndArgs.erasedType
+        val qualifier = typeAndArgs.qualifier
+        if (paramIndex > 0) add(",")
+
+        add("$paramBreak${indent}get(%T::class", type)
+        if (typeAndArgs.hasGenericArgs) {
+          add(", $GENERIC_ARGS = setOf(")
+          for ((argIndex, typeArg) in typeAndArgs.genericArgs.withIndex()) {
+            if (argIndex > 0) add(", ")
+            add("%T::class", typeArg)
+          }
+          add(")")
         }
+        if (qualifier != null) {
+          add(", $QUALIFIER = %S", qualifier)
+        }
+        add(")")
+
         if (!dependencyGraph.put(returnType, type)) {
           // Dependency issue detected
           return false
@@ -346,9 +357,9 @@ internal class ModuleBuilder(
     return true
   }
 
-  private val List<*>.indent get() = if (size > 1) "    " else ""
+  private val Sequence<*>.indent get() = if (count() > 1) "    " else ""
 
-  private val List<*>.lineBreak get() = if (size > 1) "\n" else ""
+  private val Sequence<*>.lineBreak get() = if (count() > 1) "\n" else ""
 
   private fun Element.providerGetName(): String {
     return if (hasAnnotationMirror<Singleton>()) {

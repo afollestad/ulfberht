@@ -47,7 +47,6 @@ import com.afollestad.ulfberht.util.Types.BASE_COMPONENT
 import com.afollestad.ulfberht.util.Types.BASE_MODULE
 import com.afollestad.ulfberht.util.Types.GET_SCOPE_METHOD
 import com.afollestad.ulfberht.util.Types.KCLASS_OF_ANY
-import com.afollestad.ulfberht.util.Types.KCLASS_OF_T
 import com.afollestad.ulfberht.util.Types.LIFECYCLE_EVENT_ON_DESTROY
 import com.afollestad.ulfberht.util.Types.LIFECYCLE_OBSERVER
 import com.afollestad.ulfberht.util.Types.LOGGER
@@ -228,10 +227,11 @@ internal class ComponentBuilder(
               """
               if ($CALLED_BY === this) return null
               $MODULES_LIST_NAME.forEach { module ->
-                module.$GET_PROVIDER_NAME($WANTED_TYPE, $GENERIC_ARGS, $QUALIFIER, $CALLED_BY ?: this)
+                module.$GET_PROVIDER_NAME<%T>($WANTED_TYPE, $GENERIC_ARGS, $QUALIFIER, $CALLED_BY ?: this)
                     ?.let { return it }
               }
-              """.trimIndent() + "\n"
+              """.trimIndent() + "\n",
+              TYPE_VARIABLE_T
           )
       )
     }
@@ -249,7 +249,7 @@ internal class ComponentBuilder(
 
     return FunSpec.builder(GET_PROVIDER_NAME)
         .addAnnotation(SUPPRESS_UNCHECKED_CAST)
-        .addParameter(WANTED_TYPE, KCLASS_OF_T)
+        .addParameter(WANTED_TYPE, KCLASS_OF_ANY)
         .addParameter(GENERIC_ARGS, SET.parameterizedBy(KCLASS_OF_ANY))
         .addParameter(QUALIFIER, NULLABLE_KOTLIN_STRING)
         .addParameter(CALLED_BY, NULLABLE_BASE_COMPONENT)
@@ -293,7 +293,7 @@ internal class ComponentBuilder(
         add(")")
       }
       code.applyIf(qualifier != null) {
-        add(", $QUALIFIER = %S)", qualifier)
+        add(", $QUALIFIER = %S", qualifier)
       }
       code.add(")")
       code.applyIf(fieldTypeAndArgs.hasGenericArgs) {
