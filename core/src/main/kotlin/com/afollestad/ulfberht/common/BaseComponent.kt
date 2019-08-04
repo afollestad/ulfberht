@@ -37,7 +37,7 @@ interface BaseComponent : ScopeObserver {
 
   @Suppress("UNCHECKED_CAST")
   fun <T : Any> get(
-    wantedType: KClass<T>,
+    wantedType: KClass<*>,
     genericArgs: Set<KClass<*>> = emptySet(),
     qualifier: String? = null
   ): T {

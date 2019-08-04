@@ -274,12 +274,10 @@ internal class ComponentBuilder(
     val paramName = parameter.simpleName.toString()
     val paramClass = parameter.asType()
         .asTypeElement()
-    var shouldSuppressUncheckedCast = false
 
     val code = CodeBlock.builder()
     for ((field, qualifier) in paramClass.enclosedElements.injectedFieldsAndQualifiers()) {
       val fieldTypeAndArgs = field.asTypeAndArgs(environment)
-      shouldSuppressUncheckedCast = fieldTypeAndArgs.hasGenericArgs
       code.apply {
         add("$paramName.%N = ", field.simpleName)
         add("get(%T::class", fieldTypeAndArgs.erasedType)
@@ -333,7 +331,6 @@ internal class ComponentBuilder(
         }
 
     return FunSpec.builder(method.simpleName.toString())
-        .applyIf(shouldSuppressUncheckedCast) { addAnnotation(SUPPRESS_UNCHECKED_CAST) }
         .addModifiers(OVERRIDE)
         .addParameter(paramName, parameter.asType().asTypeName())
         .addCode(code.build())
