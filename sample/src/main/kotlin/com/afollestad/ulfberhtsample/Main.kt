@@ -43,9 +43,9 @@ interface MyModule1 {
 
 @Module
 abstract class MyModule2 {
-  @Provides fun one(one: OneImpl): SomeClass<String, Boolean> = SomeClass("test", true)
+  @Provides fun one(): SomeClass<String, Boolean> = SomeClass("test", true)
 
-  @Provides fun two(two: TwoImpl): SomeClass<Int, Long> = SomeClass(6, 10L)
+  @Provides fun two(): SomeClass<Int, Long> = SomeClass(6, 10L)
 }
 
 interface One {

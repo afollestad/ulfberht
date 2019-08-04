@@ -37,11 +37,10 @@ interface BaseModule {
   ): T {
     return getProvider<T>(
         wantedType = wantedType,
+        genericArgs = genericArgs,
         qualifier = qualifier,
         calledBy = null
-    )?.get() ?: error(
-        "Didn't find provider for type ${wantedType.qualifiedName} (qualifier=\"$qualifier)\""
-    )
+    )?.get() ?: missingProviderError(wantedType, genericArgs, qualifier)
   }
 
   /** Retrieves a [Provider] for a provided class. */
@@ -78,3 +77,20 @@ interface BaseModule {
     }
   }
 }
+
+private fun missingProviderError(
+  wantedType: KClass<*>,
+  genericArgs: Set<KClass<*>>,
+  qualifier: String?
+): Nothing = error(StringBuilder().apply {
+  append("Didn't find provider for type ${wantedType.qualifiedName}")
+  if (genericArgs.isNotEmpty()) {
+    append(
+        genericArgs.joinToString(
+            separator = ", ", prefix = "<", postfix = ">"
+        ) { it.qualifiedName!! })
+  }
+  if (qualifier != null) {
+    append(" (qualifier=\"$qualifier\")")
+  }
+})
