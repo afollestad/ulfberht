@@ -64,7 +64,6 @@ internal object Types {
   val REIFIED_TYPE_VARIABLE_T = TYPE_VARIABLE_T.copy(reified = true)
 
   private val KCLASS = KClass::class.asTypeName()
-  val KCLASS_OF_T = KCLASS.parameterizedBy(TYPE_VARIABLE_T)
   val KCLASS_OF_ANY = KCLASS.parameterizedBy(STAR)
 
   val PROVIDER = Provider::class.asTypeName()

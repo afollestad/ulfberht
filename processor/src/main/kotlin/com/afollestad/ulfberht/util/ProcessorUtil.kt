@@ -20,6 +20,7 @@ import com.afollestad.ulfberht.annotation.Inject
 import com.afollestad.ulfberht.annotation.Param
 import com.afollestad.ulfberht.annotation.Provides
 import com.afollestad.ulfberht.util.Names.MODULES_LIST_NAME
+import com.afollestad.ulfberht.util.Names.QUALIFIER
 import com.afollestad.ulfberht.util.Types.LIFECYCLE_OWNER
 import com.squareup.kotlinpoet.BOOLEAN
 import com.squareup.kotlinpoet.ClassName
@@ -249,7 +250,7 @@ internal object ProcessorUtil {
 
   private val AnnotationMirror?.qualifier: String?
     get() {
-      val qualifier: String = this?.getParameter("qualifier") ?: return null
+      val qualifier: String = this?.getParameter(QUALIFIER) ?: return null
       return if (qualifier.isEmpty()) null else qualifier
     }
 
@@ -305,38 +306,4 @@ internal object ProcessorUtil {
   }
 
   private fun String.lastComponent(): String = substring(lastIndexOf('.') + 1)
-}
-
-data class TypeAndArgs(
-  val fullType: TypeName,
-  val erasedType: TypeName,
-  val genericArgs: Array<TypeName>,
-  val qualifier: String?
-) {
-  val hasGenericArgs: Boolean = genericArgs.isNotEmpty()
-
-  override fun toString(): String = if (qualifier != null) {
-    "@\"$qualifier\" $fullType"
-  } else {
-    fullType.toString()
-  }
-
-  override fun equals(other: Any?): Boolean {
-    if (this === other) return true
-    if (javaClass != other?.javaClass) return false
-    other as TypeAndArgs
-    if (fullType != other.fullType) return false
-    if (erasedType != other.erasedType) return false
-    if (!genericArgs.contentEquals(other.genericArgs)) return false
-    if (qualifier != other.qualifier) return false
-    return true
-  }
-
-  override fun hashCode(): Int {
-    var result = fullType.hashCode()
-    result = 31 * result + erasedType.hashCode()
-    result = 31 * result + genericArgs.contentHashCode()
-    result = 31 * result + (qualifier?.hashCode() ?: 0)
-    return result
-  }
 }
