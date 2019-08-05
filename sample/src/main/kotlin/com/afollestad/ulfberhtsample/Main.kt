@@ -52,10 +52,7 @@ interface One {
   fun doSomething()
 }
 
-class OneImpl(
-  private val two: Two,
-  private val idk: SomeClass<String, Boolean>
-) : One {
+class OneImpl(private val two: Two) : One {
   override fun doSomething() = two.doSomething()
 }
 

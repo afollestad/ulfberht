@@ -1,3 +1,4 @@
-0.3.1
+0.3.2
 
-* Important generics support bug fixes.
+* More generics support bug fixes.
+* Improved circular dependency detection a bit.
