@@ -15,9 +15,8 @@
  */
 package com.afollestad.ulfberht.util
 
-import com.squareup.kotlinpoet.TypeName
-import javax.annotation.processing.ProcessingEnvironment
 import com.afollestad.ulfberht.util.ProcessorUtil.error
+import javax.annotation.processing.ProcessingEnvironment
 
 /**
  * Helps keep track of the dependency graph for features like circular
@@ -28,32 +27,41 @@ import com.afollestad.ulfberht.util.ProcessorUtil.error
 internal class DependencyGraph(
   private val environment: ProcessingEnvironment
 ) {
-  private val graph = mutableMapOf<String, MutableSet<String>>()
+  private val bindings = mutableMapOf<TypeAndArgs, TypeAndArgs>()
+  private val graph = mutableMapOf<TypeAndArgs, MutableSet<TypeAndArgs>>()
 
-  private fun put(
-    owner: String,
-    dependency: String
-  ): Boolean {
-    if (get(dependency).contains(owner)) {
-      environment.error("Circular dependency detected between $dependency and $owner!")
-      return false
-    }
-    get(owner).add(dependency)
-    return true
+  fun bind(
+    concrete: TypeAndArgs,
+    to: TypeAndArgs
+  ) {
+    bindings[concrete] = to
   }
 
   fun put(
-    owner: TypeName,
-    dependency: TypeName
-  ) = put(owner.toString(), dependency.toString())
+    owner: TypeAndArgs,
+    dependency: TypeAndArgs
+  ): Boolean {
+    if (get(dependency).contains(owner)) {
+      environment.error(
+          "Circular dependency detected between $dependency and $owner!"
+      )
+      return false
+    }
+    get(owner).add(dependency)
 
-  operator fun get(owner: String): MutableSet<String> {
-    return graph[owner] ?: mutableSetOf<String>().also { graph[owner] = it }
+    bindings[dependency]?.let { depBinding ->
+      put(owner, depBinding)
+    }
+
+    return true
   }
 
-  operator fun get(owner: TypeName): MutableSet<String> = get(owner.toString())
+  operator fun get(owner: TypeAndArgs): MutableSet<TypeAndArgs> {
+    return graph[owner] ?: mutableSetOf<TypeAndArgs>().also { graph[owner] = it }
+  }
 
   fun clear() {
+    bindings.clear()
     graph.clear()
   }
 }

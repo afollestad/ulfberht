@@ -47,6 +47,7 @@ import com.afollestad.ulfberht.util.ProcessorUtil.getPackage
 import com.afollestad.ulfberht.util.ProcessorUtil.hasAnnotationMirror
 import com.afollestad.ulfberht.util.ProcessorUtil.isAbstractClass
 import com.afollestad.ulfberht.util.ProcessorUtil.returnTypeAsTypeAndArgs
+import com.afollestad.ulfberht.util.ProcessorUtil.asTypeAndArgs
 import com.afollestad.ulfberht.util.TypeAndArgs
 import com.afollestad.ulfberht.util.Types.BASE_COMPONENT
 import com.afollestad.ulfberht.util.Types.BASE_MODULE
@@ -69,7 +70,6 @@ import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.SET
 import com.squareup.kotlinpoet.STRING
-import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.Element
@@ -251,10 +251,16 @@ internal class ModuleBuilder(
     val methodName = method.simpleName.toString()
     val providerMethodName = method.providerGetName()
 
+    val qualifier = returnTypeAndArgs.qualifier
+    dependencyGraph.bind(
+        concrete = parameterType.asTypeAndArgs(environment, qualifier = qualifier),
+        to = returnTypeAndArgs
+    )
+
     providedTypeMethodNameMap[returnTypeAndArgs] =
       MethodNameAndQualifier(
           name = methodName,
-          qualifier = returnTypeAndArgs.qualifier
+          qualifier = qualifier
       )
 
     val fieldTypeConstructorParams = parameterType
@@ -267,7 +273,7 @@ internal class ModuleBuilder(
           val factoryNamePrefix = if (fieldTypeConstructorParams.count() > 1) "  " else " "
 
           add("return %N {$paramBreak$factoryNamePrefix%T(", providerMethodName, parameterType)
-          if (!construct(fieldTypeConstructorParams, returnTypeAndArgs.fullType)) {
+          if (!construct(fieldTypeConstructorParams, returnTypeAndArgs)) {
             return null
           }
 
@@ -308,7 +314,7 @@ internal class ModuleBuilder(
               method.providerGetName(),
               originalMethodName
           )
-          if (!construct(methodParams, returnTypeAndArgs.fullType)) {
+          if (!construct(methodParams, returnTypeAndArgs)) {
             return null
           }
 
@@ -326,7 +332,7 @@ internal class ModuleBuilder(
 
   private fun CodeBlock.Builder.construct(
     params: Sequence<TypeAndArgs>,
-    returnType: TypeName
+    returnType: TypeAndArgs
   ): Boolean {
     apply {
       val indent = params.indent
@@ -351,7 +357,7 @@ internal class ModuleBuilder(
         }
         add(")")
 
-        if (!dependencyGraph.put(returnType, type)) {
+        if (!dependencyGraph.put(returnType, typeAndArgs)) {
           // Dependency issue detected
           return false
         }

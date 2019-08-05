@@ -20,8 +20,6 @@ import com.afollestad.ulfberht.annotation.Inject
 import com.afollestad.ulfberht.annotation.Param
 import com.afollestad.ulfberht.annotation.Provides
 import com.afollestad.ulfberht.util.Names.MODULES_LIST_NAME
-import com.afollestad.ulfberht.util.ProcessorUtil.getAnnotationMirror
-import com.afollestad.ulfberht.util.ProcessorUtil.qualifier
 import com.afollestad.ulfberht.util.Types.LIFECYCLE_OWNER
 import com.squareup.kotlinpoet.BOOLEAN
 import com.squareup.kotlinpoet.ClassName
@@ -31,9 +29,12 @@ import com.squareup.kotlinpoet.INT
 import com.squareup.kotlinpoet.LIST
 import com.squareup.kotlinpoet.LONG
 import com.squareup.kotlinpoet.MAP
+import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.SET
+import com.squareup.kotlinpoet.SHORT
 import com.squareup.kotlinpoet.STRING
 import com.squareup.kotlinpoet.TypeName
+import com.squareup.kotlinpoet.asClassName
 import com.squareup.kotlinpoet.asTypeName
 import org.jetbrains.annotations.NotNull
 import org.jetbrains.annotations.Nullable
@@ -50,9 +51,6 @@ import javax.lang.model.element.TypeElement
 import javax.lang.model.element.VariableElement
 import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.TypeKind.DECLARED
-import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
-import com.squareup.kotlinpoet.SHORT
-import com.squareup.kotlinpoet.asClassName
 import javax.lang.model.type.TypeMirror
 import javax.tools.Diagnostic.Kind.ERROR
 import kotlin.reflect.KClass
@@ -243,15 +241,15 @@ internal object ProcessorUtil {
     return this
   }
 
-  val AnnotationMirror?.qualifier: String?
-    get() {
-      val qualifier: String = this?.getParameter("qualifier") ?: return null
-      return if (qualifier.isEmpty()) null else qualifier
-    }
-
   val AnnotationMirror?.name: String?
     get() {
       val qualifier: String = this?.getParameter("name") ?: return null
+      return if (qualifier.isEmpty()) null else qualifier
+    }
+
+  private val AnnotationMirror?.qualifier: String?
+    get() {
+      val qualifier: String = this?.getParameter("qualifier") ?: return null
       return if (qualifier.isEmpty()) null else qualifier
     }
 
@@ -301,16 +299,6 @@ internal object ProcessorUtil {
     }
   }
 
-  private fun VariableElement.getFieldTypeName(
-    env: ProcessingEnvironment
-  ): TypeName {
-    val nullable = getAnnotationMirror<Nullable>() != null &&
-        getAnnotationMirror<NotNull>() == null
-    return asType()
-        .correctTypeName(env)
-        .copy(nullable = nullable)
-  }
-
   private fun Element.isNullable(): Boolean {
     return getAnnotationMirror<Nullable>() != null &&
         getAnnotationMirror<NotNull>() == null
@@ -326,6 +314,12 @@ data class TypeAndArgs(
   val qualifier: String?
 ) {
   val hasGenericArgs: Boolean = genericArgs.isNotEmpty()
+
+  override fun toString(): String = if (qualifier != null) {
+    "@\"$qualifier\" $fullType"
+  } else {
+    fullType.toString()
+  }
 
   override fun equals(other: Any?): Boolean {
     if (this === other) return true
