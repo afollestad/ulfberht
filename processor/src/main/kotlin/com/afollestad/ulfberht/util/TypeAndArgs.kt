@@ -15,6 +15,8 @@
  */
 package com.afollestad.ulfberht.util
 
+import com.afollestad.ulfberht.util.Names.GET_NAME
+import com.afollestad.ulfberht.util.Names.GET_PROVIDER_NAME
 import com.squareup.kotlinpoet.TypeName
 
 /** @author Aidan Follestad (@afollestad) */
@@ -22,32 +24,38 @@ internal data class TypeAndArgs(
   val fullType: TypeName,
   val erasedType: TypeName,
   val genericArgs: Array<TypeName>,
-  val qualifier: String?
+  val qualifier: String?,
+  val isProvider: Boolean
 ) {
-    val hasGenericArgs: Boolean = genericArgs.isNotEmpty()
+  val hasGenericArgs: Boolean = genericArgs.isNotEmpty()
+  val getterName: String = if (isProvider) {
+    GET_PROVIDER_NAME
+  } else {
+    GET_NAME
+  }
 
-    override fun toString(): String = if (qualifier != null) {
-        "@\"$qualifier\" $fullType"
-    } else {
-        fullType.toString()
-    }
+  override fun toString(): String = if (qualifier != null) {
+    "@\"$qualifier\" $fullType"
+  } else {
+    fullType.toString()
+  }
 
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-        other as TypeAndArgs
-        if (fullType != other.fullType) return false
-        if (erasedType != other.erasedType) return false
-        if (!genericArgs.contentEquals(other.genericArgs)) return false
-        if (qualifier != other.qualifier) return false
-        return true
-    }
+  override fun equals(other: Any?): Boolean {
+    if (this === other) return true
+    if (javaClass != other?.javaClass) return false
+    other as TypeAndArgs
+    if (fullType != other.fullType) return false
+    if (erasedType != other.erasedType) return false
+    if (!genericArgs.contentEquals(other.genericArgs)) return false
+    if (qualifier != other.qualifier) return false
+    return true
+  }
 
-    override fun hashCode(): Int {
-        var result = fullType.hashCode()
-        result = 31 * result + erasedType.hashCode()
-        result = 31 * result + genericArgs.contentHashCode()
-        result = 31 * result + (qualifier?.hashCode() ?: 0)
-        return result
-    }
+  override fun hashCode(): Int {
+    var result = fullType.hashCode()
+    result = 31 * result + erasedType.hashCode()
+    result = 31 * result + genericArgs.contentHashCode()
+    result = 31 * result + (qualifier?.hashCode() ?: 0)
+    return result
+  }
 }

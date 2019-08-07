@@ -15,6 +15,7 @@
  */
 package com.afollestad.ulfberht.util
 
+import com.afollestad.ulfberht.Provider
 import com.afollestad.ulfberht.annotation.Binds
 import com.afollestad.ulfberht.annotation.Inject
 import com.afollestad.ulfberht.annotation.Param
@@ -71,21 +72,32 @@ internal object ProcessorUtil {
   fun TypeMirror.asTypeAndArgs(
     env: ProcessingEnvironment,
     nullable: Boolean = false,
-    qualifier: String?
+    qualifier: String?,
+    isProvider: Boolean = false
   ): TypeAndArgs {
     val baseType = env.typeUtils.erasure(this)
         .correctTypeName(env)
-    val typeArgs: Array<TypeName> = if (this is DeclaredType) {
-      typeArguments.map { it.correctTypeName(env) }
-          .toTypedArray()
+    val typeArgs = if (this is DeclaredType) {
+      typeArguments
     } else {
-      emptyArray()
+      emptyList<TypeMirror>()
     }
+
+    if (baseType.toString() == Provider::class.qualifiedName) {
+      check(typeArgs.size == 1)
+      return typeArgs.single()
+          .asTypeAndArgs(env, nullable, qualifier, isProvider = true)
+    }
+
+    val typeArgsNames: Array<TypeName> = typeArgs
+        .map { it.correctTypeName(env) }
+        .toTypedArray()
     return TypeAndArgs(
         fullType = correctTypeName(env).copy(nullable = nullable),
         erasedType = baseType.copy(nullable = nullable),
-        genericArgs = typeArgs,
-        qualifier = qualifier
+        genericArgs = typeArgsNames,
+        qualifier = qualifier,
+        isProvider = isProvider
     )
   }
 

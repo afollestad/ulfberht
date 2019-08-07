@@ -278,9 +278,11 @@ internal class ComponentBuilder(
     val code = CodeBlock.builder()
     for ((field, qualifier) in paramClass.enclosedElements.injectedFieldsAndQualifiers()) {
       val fieldTypeAndArgs = field.asTypeAndArgs(environment)
+      val getterName = fieldTypeAndArgs.getterName
+      val doubleBang = if (fieldTypeAndArgs.isProvider) "!!" else ""
       code.apply {
         add("$paramName.%N = ", field.simpleName)
-        add("get(%T::class", fieldTypeAndArgs.erasedType)
+        add("$getterName(%T::class", fieldTypeAndArgs.erasedType)
       }
       code.applyIf(fieldTypeAndArgs.hasGenericArgs) {
         add(", setOf(")
@@ -293,8 +295,8 @@ internal class ComponentBuilder(
       code.applyIf(qualifier != null) {
         add(", $QUALIFIER = %S", qualifier)
       }
-      code.add(")")
-      code.applyIf(fieldTypeAndArgs.hasGenericArgs) {
+      code.add(")$doubleBang")
+      code.applyIf(!fieldTypeAndArgs.isProvider && fieldTypeAndArgs.hasGenericArgs) {
         add(" as %T", fieldTypeAndArgs.fullType)
       }
       code.add("\n")

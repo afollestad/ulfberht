@@ -40,6 +40,7 @@ internal object Names {
   const val CALLED_BY = "calledBy"
 
   const val GET_PROVIDER_NAME = "getProvider"
+  const val GET_NAME = "get"
 
   const val CACHED_PROVIDERS_NAME = "cachedProviders"
   const val FACTORY_EXTENSION_NAME = "factory"

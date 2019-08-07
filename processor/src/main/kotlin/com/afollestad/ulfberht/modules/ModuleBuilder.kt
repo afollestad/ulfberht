@@ -341,9 +341,12 @@ internal class ModuleBuilder(
       for ((paramIndex, typeAndArgs) in params.withIndex()) {
         val type = typeAndArgs.erasedType
         val qualifier = typeAndArgs.qualifier
+        val getterName = typeAndArgs.getterName
+        val doubleBang = if (typeAndArgs.isProvider) "!!" else ""
         if (paramIndex > 0) add(",")
 
-        add("$paramBreak${indent}get(%T::class", type)
+        add("$paramBreak$indent")
+        add("$getterName(%T::class", type)
         if (typeAndArgs.hasGenericArgs) {
           add(", setOf(")
           for ((argIndex, typeArg) in typeAndArgs.genericArgs.withIndex()) {
@@ -355,7 +358,7 @@ internal class ModuleBuilder(
         if (qualifier != null) {
           add(", $QUALIFIER = %S", qualifier)
         }
-        add(")")
+        add(")$doubleBang")
 
         if (!dependencyGraph.put(returnType, typeAndArgs)) {
           // Dependency issue detected

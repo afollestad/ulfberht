@@ -15,6 +15,7 @@
  */
 package com.afollestad.ulfberhtsample
 
+import com.afollestad.ulfberht.Provider
 import com.afollestad.ulfberht.annotation.Binds
 import com.afollestad.ulfberht.annotation.Component
 import com.afollestad.ulfberht.annotation.Inject
@@ -61,15 +62,21 @@ interface Two {
 }
 
 class TwoImpl(
-  @Param("message") private val message: String
+  @Param("message") private val message: String,
+  @Param("message") private val messageProvider: Provider<String>
 ) : Two {
-  override fun doSomething() = println(message)
+  override fun doSomething() {
+    println(message)
+    println(messageProvider.get())
+  }
 }
 
 class Main {
   @Inject lateinit var one: One
   @Inject lateinit var someClass1: SomeClass<String, Boolean>
   @Inject lateinit var someClass2: SomeClass<Int, Long>
+  @Inject("message") lateinit var messageProvider: Provider<String>
+  @Inject lateinit var someClassProvider: Provider<SomeClass<String, Boolean>>
 
   fun doSomething() {
     one.doSomething()
