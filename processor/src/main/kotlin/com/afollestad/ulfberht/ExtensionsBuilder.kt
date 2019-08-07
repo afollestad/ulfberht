@@ -18,7 +18,7 @@ package com.afollestad.ulfberht
 import com.afollestad.ulfberht.util.Annotations.SUPPRESS_UNCHECKED_CAST
 import com.afollestad.ulfberht.util.Names.CACHED_PROVIDERS_NAME
 import com.afollestad.ulfberht.util.Names.CLASS_HEADER
-import com.afollestad.ulfberht.util.Names.IS_SUBCLASS_OF_EXTENSION_NAME
+import com.afollestad.ulfberht.util.Names.IS_SUBCLASS_EXTENSION_NAME
 import com.afollestad.ulfberht.util.Names.LIBRARY_PACKAGE
 import com.afollestad.ulfberht.util.Names.FACTORY_EXTENSION_NAME
 import com.afollestad.ulfberht.util.Names.SINGLETON_PROVIDER_EXTENSION_NAME
@@ -50,20 +50,20 @@ internal class ExtensionsBuilder(
 ) {
   fun generate() {
     val fileSpec = FileSpec.builder(LIBRARY_PACKAGE, "_ProcessorExtensions")
-        .addFunction(isSubClassOfFunction())
+        .addFunction(isSubClassFunction())
         .addFunction(factoryProviderFunction())
         .addFunction(singletonProviderFunction())
         .build()
     fileSpec.writeTo(environment.filer)
   }
 
-  private fun isSubClassOfFunction(): FunSpec {
-    return FunSpec.builder(IS_SUBCLASS_OF_EXTENSION_NAME)
+  private fun isSubClassFunction(): FunSpec {
+    return FunSpec.builder(IS_SUBCLASS_EXTENSION_NAME)
         .addKdoc(CLASS_HEADER)
         .receiver(KCLASS_OF_ANY)
-        .addModifiers(INLINE, INTERNAL)
-        .addTypeVariable(REIFIED_TYPE_VARIABLE_T)
-        .addCode("return %T::class.java.isAssignableFrom(this.java)\n", TYPE_VARIABLE_T)
+        .addParameter("ofClass", KCLASS_OF_ANY)
+        .addModifiers(INTERNAL)
+        .addCode("return ofClass.java.isAssignableFrom(this.java)\n", TYPE_VARIABLE_T)
         .returns(BOOLEAN)
         .build()
   }

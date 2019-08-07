@@ -28,7 +28,7 @@ import com.afollestad.ulfberht.util.Names.COMPONENT_PARAM_NAME
 import com.afollestad.ulfberht.util.Names.FACTORY_EXTENSION_NAME
 import com.afollestad.ulfberht.util.Names.GENERIC_ARGS
 import com.afollestad.ulfberht.util.Names.GET_PROVIDER_NAME
-import com.afollestad.ulfberht.util.Names.IS_SUBCLASS_OF_EXTENSION_NAME
+import com.afollestad.ulfberht.util.Names.IS_SUBCLASS_EXTENSION_NAME
 import com.afollestad.ulfberht.util.Names.LIBRARY_PACKAGE
 import com.afollestad.ulfberht.util.Names.MODULE_NAME_SUFFIX
 import com.afollestad.ulfberht.util.Names.QUALIFIER
@@ -116,7 +116,7 @@ internal class ModuleBuilder(
         .addFunction(getProviderFunction(providedTypeMethodNameMap))
         .build()
     val fileSpec = FileSpec.builder(pkg, fileName)
-        .addImport(LIBRARY_PACKAGE, IS_SUBCLASS_OF_EXTENSION_NAME)
+        .addImport(LIBRARY_PACKAGE, IS_SUBCLASS_EXTENSION_NAME)
         .applyIf(haveNonSingletons) { addImport(LIBRARY_PACKAGE, FACTORY_EXTENSION_NAME) }
         .applyIf(haveSingletons) { addImport(LIBRARY_PACKAGE, SINGLETON_PROVIDER_EXTENSION_NAME) }
         .addType(typeSpec)
@@ -187,7 +187,7 @@ internal class ModuleBuilder(
 
     for ((typeAndArgs, getterAndQualifier) in providedTypeMethodNameMap) {
       val (getterName, qualifier) = getterAndQualifier
-      code.add("  $WANTED_TYPE.$IS_SUBCLASS_OF_EXTENSION_NAME<%T>()", typeAndArgs.fullType)
+      code.add("  $WANTED_TYPE.$IS_SUBCLASS_EXTENSION_NAME(%T::class)", typeAndArgs.erasedType)
       code.applyIf(typeAndArgs.hasGenericArgs) {
         add(" && $GENERIC_ARGS == setOf(")
         for ((index, typeArg) in typeAndArgs.genericArgs.withIndex()) {
