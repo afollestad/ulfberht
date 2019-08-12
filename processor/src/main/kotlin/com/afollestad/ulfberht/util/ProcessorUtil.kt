@@ -306,13 +306,6 @@ internal object ProcessorUtil {
     return kind == VOID
   }
 
-  fun TypeMirror?.isObject(): Boolean {
-    if (this == null) {
-      return false
-    }
-    return toString() == "java.lang.Object"
-  }
-
   fun TypeMirror?.isViewModel(env: ProcessingEnvironment): Boolean {
     if (this == null) {
       return false
@@ -390,4 +383,11 @@ internal object ProcessorUtil {
   }
 
   private fun String.lastComponent(): String = substring(lastIndexOf('.') + 1)
+
+  private fun TypeMirror?.isObject(): Boolean {
+    if (this == null) {
+      return false
+    }
+    return toString() == "java.lang.Object"
+  }
 }
