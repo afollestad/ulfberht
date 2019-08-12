@@ -19,13 +19,16 @@ import com.afollestad.ulfberht.annotation.Component
 import com.afollestad.ulfberht.annotation.ScopeOwner
 import com.afollestad.ulfberht.util.Annotations.SUPPRESS_UNCHECKED_CAST
 import com.afollestad.ulfberht.util.Names.CALLED_BY
+import com.afollestad.ulfberht.util.Names.CHILDREN_NAME
 import com.afollestad.ulfberht.util.Names.CLASS_HEADER
+import com.afollestad.ulfberht.util.Names.COMPONENT_NAME_SUFFIX
 import com.afollestad.ulfberht.util.Names.FACTORY_EXTENSION_NAME
 import com.afollestad.ulfberht.util.Names.GENERIC_ARGS
 import com.afollestad.ulfberht.util.Names.GET_PROVIDER_NAME
 import com.afollestad.ulfberht.util.Names.GET_RUNTIME_DEP_NAME
 import com.afollestad.ulfberht.util.Names.LIBRARY_PACKAGE
 import com.afollestad.ulfberht.util.Names.MODULES_LIST_NAME
+import com.afollestad.ulfberht.util.Names.PARENT_NAME
 import com.afollestad.ulfberht.util.Names.RUNTIME_DEPS_NAME
 import com.afollestad.ulfberht.util.Names.QUALIFIER
 import com.afollestad.ulfberht.util.Names.WANTED_TYPE
@@ -43,6 +46,7 @@ import com.afollestad.ulfberht.util.ProcessorUtil.getParameter
 import com.afollestad.ulfberht.util.ProcessorUtil.injectedFieldsAndQualifiers
 import com.afollestad.ulfberht.util.ProcessorUtil.isLifecycleOwner
 import com.afollestad.ulfberht.util.ProcessorUtil.name
+import com.afollestad.ulfberht.util.ProcessorUtil.isVoid
 import com.afollestad.ulfberht.util.Types.BASE_COMPONENT
 import com.afollestad.ulfberht.util.Types.BASE_MODULE
 import com.afollestad.ulfberht.util.Types.GET_SCOPE_METHOD
@@ -76,6 +80,7 @@ import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.Element
 import javax.lang.model.element.ElementKind.INTERFACE
 import javax.lang.model.element.ExecutableElement
+import javax.lang.model.element.TypeElement
 
 /**
  * Generates component implementations from [Component] annotated interfaces.
@@ -230,7 +235,7 @@ internal class ComponentBuilder(
                 module.$GET_PROVIDER_NAME<%T>($WANTED_TYPE, $GENERIC_ARGS, $QUALIFIER, $CALLED_BY ?: this)
                     ?.let { return it }
               }
-              """.trimIndent() + "\n",
+              """.trimIndent() + "\n\n",
               TYPE_VARIABLE_T
           )
       )
@@ -266,17 +271,17 @@ internal class ComponentBuilder(
       return null
     }
     val parameter = method.parameters.single()
-    if (method.returnType.toString() != VOID_TYPE_NAME) {
+    if (!method.returnType.isVoid()) {
       environment.error("$method: $INJECT_METHOD_NAME() methods must have no return value.")
       return null
     }
 
     val paramName = parameter.simpleName.toString()
-    val paramClass = parameter.asType()
+    val paramElement = parameter.asType()
         .asTypeElement()
 
     val code = CodeBlock.builder()
-    for ((field, qualifier) in paramClass.enclosedElements.injectedFieldsAndQualifiers()) {
+    for ((field, qualifier) in paramElement.enclosedElements.injectedFieldsAndQualifiers()) {
       val fieldTypeAndArgs = field.asTypeAndArgs(environment)
       val getterName = fieldTypeAndArgs.getterName
       val doubleBang = if (fieldTypeAndArgs.isProvider) "!!" else ""
@@ -302,19 +307,33 @@ internal class ComponentBuilder(
       code.add("\n")
     }
 
-    // TODO move this to a separate module
-    paramClass.getAnnotationMirror<ScopeOwner>()
-        ?.let { scopeOwner ->
-          if (!paramClass.isLifecycleOwner()) {
-            environment.error(
-                "$paramClass: @ScopeOwner can only be used on classes which implement LifecycleOwner."
-            )
-            return null
-          }
+    // TODO move this to a separate module?
+    if (!maybeAddLifecycleObserver(paramElement, paramName, code)) {
+      return null
+    }
 
-          val ownedScope = scopeOwner.name
-          code.add(
-              "\n" + """
+    return FunSpec.builder(method.simpleName.toString())
+        .addModifiers(OVERRIDE)
+        .addParameter(paramName, parameter.asType().asTypeName())
+        .addCode(code.build())
+        .build()
+  }
+
+  private fun maybeAddLifecycleObserver(
+    paramElement: TypeElement,
+    paramName: String,
+    code: CodeBlock.Builder
+  ): Boolean = paramElement.getAnnotationMirror<ScopeOwner>()?.let { scopeOwner ->
+    if (!paramElement.isLifecycleOwner()) {
+      environment.error(
+          "$paramElement: @ScopeOwner can only be used on classes which implement LifecycleOwner."
+      )
+      return false
+    }
+
+    val ownedScope = scopeOwner.name
+    code.add(
+        "\n" + """
             $paramName.lifecycle.addObserver(object : %T {
               @%T(%T)
               fun onDestroy() {
@@ -324,29 +343,19 @@ internal class ComponentBuilder(
             })
             %T.log(%P)
             """.trimIndent() + "\n",
-              LIFECYCLE_OBSERVER,
-              ON_LIFECYCLE_EVENT, LIFECYCLE_EVENT_ON_DESTROY,
-              GET_SCOPE_METHOD, ownedScope,
-              LOGGER, "$$paramName destroyed scope $ownedScope",
-              LOGGER, "$$paramName is now the owner of scope $ownedScope"
-          )
-        }
+        LIFECYCLE_OBSERVER,
+        ON_LIFECYCLE_EVENT, LIFECYCLE_EVENT_ON_DESTROY,
+        GET_SCOPE_METHOD, ownedScope,
+        LOGGER, "$$paramName destroyed scope $ownedScope",
+        LOGGER, "$$paramName is now the owner of scope $ownedScope"
+    )
 
-    return FunSpec.builder(method.simpleName.toString())
-        .addModifiers(OVERRIDE)
-        .addParameter(paramName, parameter.asType().asTypeName())
-        .addCode(code.build())
-        .build()
-  }
+    return true
+  } ?: true
 
-  companion object {
-    const val PARENT_NAME = "parent"
-    const val CHILDREN_NAME = "children"
-
-    private const val COMPONENT_NAME_SUFFIX = "_Component"
-    private const val INJECT_METHOD_NAME = "inject"
-    private const val VOID_TYPE_NAME = "void"
-    private const val ORIGINAL_TYPE_NAME = "originalType"
-    private const val SCOPE_NAME = "scope"
+  private companion object {
+    const val INJECT_METHOD_NAME = "inject"
+    const val ORIGINAL_TYPE_NAME = "originalType"
+    const val SCOPE_NAME = "scope"
   }
 }

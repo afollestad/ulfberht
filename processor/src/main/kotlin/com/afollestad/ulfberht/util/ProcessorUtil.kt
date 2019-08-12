@@ -53,6 +53,7 @@ import javax.lang.model.element.TypeElement
 import javax.lang.model.element.VariableElement
 import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.TypeKind.DECLARED
+import javax.lang.model.type.TypeKind.VOID
 import javax.lang.model.type.TypeMirror
 import javax.tools.Diagnostic.Kind.ERROR
 import kotlin.reflect.KClass
@@ -233,7 +234,7 @@ internal object ProcessorUtil {
   }
 
   fun TypeElement.isLifecycleOwner(): Boolean {
-    if (asType().toString() == "java.lang.Object") {
+    if (asType().isObject()) {
       return false
     }
     return interfaces.any { it.toString() == LIFECYCLE_OWNER.toString() } ||
@@ -254,6 +255,20 @@ internal object ProcessorUtil {
     return this
   }
 
+  fun TypeMirror?.isVoid(): Boolean {
+    if (this == null) {
+      return false
+    }
+    return kind == VOID
+  }
+
+  fun TypeMirror?.isObject(): Boolean {
+    if (this == null) {
+      return false
+    }
+    return toString() == "java.lang.Object"
+  }
+
   val AnnotationMirror?.name: String?
     get() {
       val qualifier: String = this?.getParameter("name") ?: return null
@@ -270,7 +285,7 @@ internal object ProcessorUtil {
     return env.typeUtils.directSupertypes(this.asType())
         .asSequence()
         .filter { it.kind == DECLARED }
-        .filterNot { it.asTypeName().toString() == "java.lang.Object" }
+        .filterNot { it.isObject() }
         .singleOrNull()
   }
 
