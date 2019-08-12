@@ -22,7 +22,7 @@ import com.afollestad.ulfberht.annotation.Param
 import com.afollestad.ulfberht.annotation.Provides
 import com.afollestad.ulfberht.util.Names.MODULES_LIST_NAME
 import com.afollestad.ulfberht.util.Names.QUALIFIER
-import com.afollestad.ulfberht.util.Types.LIFECYCLE_OWNER
+import com.afollestad.ulfberht.util.Types.VIEW_MODEL
 import com.squareup.kotlinpoet.BOOLEAN
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.DOUBLE
@@ -56,6 +56,7 @@ import javax.lang.model.type.TypeKind.DECLARED
 import javax.lang.model.type.TypeKind.VOID
 import javax.lang.model.type.TypeMirror
 import javax.tools.Diagnostic.Kind.ERROR
+import javax.tools.Diagnostic.Kind.WARNING
 import kotlin.reflect.KClass
 
 /** @author Aidan Follestad (@afollestad) */
@@ -90,15 +91,33 @@ internal object ProcessorUtil {
           .asTypeAndArgs(env, nullable, qualifier, isProvider = true)
     }
 
-    val typeArgsNames: Array<TypeName> = typeArgs
-        .map { it.correctTypeName(env) }
-        .toTypedArray()
+    val isViewModel = isViewModel(env)
+    val typeArgsNames: Array<TypeName> = if (isViewModel) {
+      if (typeArgs.isNotEmpty()) {
+        env.warn("$this: Generic args on view models are ignored.")
+      }
+      emptyArray()
+    } else {
+      typeArgs
+          .map { it.correctTypeName(env) }
+          .toTypedArray()
+    }
+    val actualQualifier = if (isViewModel) {
+      if (!qualifier.isNullOrEmpty()) {
+        env.warn("$this: Qualifiers on view models are ignored.")
+      }
+      null
+    } else {
+      qualifier
+    }
+
     return TypeAndArgs(
         fullType = correctTypeName(env).copy(nullable = nullable),
         erasedType = baseType.copy(nullable = nullable),
         genericArgs = typeArgsNames,
-        qualifier = qualifier,
-        isProvider = isProvider
+        qualifier = actualQualifier,
+        isProvider = isProvider,
+        isViewModel = isViewModel
     )
   }
 
@@ -233,16 +252,41 @@ internal object ProcessorUtil {
         }
   }
 
-  fun TypeElement.isLifecycleOwner(): Boolean {
+  fun TypeElement.hasInterface(
+    env: ProcessingEnvironment,
+    vararg interfaceTypes: TypeName
+  ): Boolean {
+    require(interfaceTypes.isNotEmpty())
     if (asType().isObject()) {
       return false
     }
-    return interfaces.any { it.toString() == LIFECYCLE_OWNER.toString() } ||
-        superclass.asTypeElement().isLifecycleOwner()
+    return interfaces.any { existingInterface ->
+      interfaceTypes.any {
+        it.toString() == existingInterface.toString()
+      }
+    } || superclass.asTypeElement().hasInterface(env, *interfaceTypes)
+  }
+
+  fun TypeElement.hasSuperClass(
+    env: ProcessingEnvironment,
+    vararg classTypes: TypeName
+  ): Boolean {
+    require(classTypes.isNotEmpty())
+    if (asType().isObject()) {
+      return false
+    }
+    val superClass = getSuperClass(env) ?: return false
+    return classTypes.any { existingClass ->
+      superclass.toString() == existingClass.toString()
+    } || superClass.asTypeElement().hasSuperClass(env, *classTypes)
   }
 
   fun ProcessingEnvironment.error(message: String) {
     messager.printMessage(ERROR, message)
+  }
+
+  fun ProcessingEnvironment.warn(message: String) {
+    messager.printMessage(WARNING, message)
   }
 
   fun <T : Any> T.applyIf(
@@ -269,6 +313,18 @@ internal object ProcessorUtil {
     return toString() == "java.lang.Object"
   }
 
+  fun TypeMirror?.isViewModel(env: ProcessingEnvironment): Boolean {
+    if (this == null) {
+      return false
+    }
+    return toString() == VIEW_MODEL.toString() ||
+        asTypeElement().getSuperClass(env).isViewModel(env)
+  }
+
+//  fun TypeMirror?.isActivityOrFragment(): Boolean {
+//    return
+//  }
+
   val AnnotationMirror?.name: String?
     get() {
       val qualifier: String = this?.getParameter("name") ?: return null
@@ -286,6 +342,7 @@ internal object ProcessorUtil {
         .asSequence()
         .filter { it.kind == DECLARED }
         .filterNot { it.isObject() }
+        .filter { it.asTypeElement().kind == CLASS }
         .singleOrNull()
   }
 

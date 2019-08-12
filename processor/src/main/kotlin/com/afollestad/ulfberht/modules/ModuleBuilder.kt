@@ -48,6 +48,8 @@ import com.afollestad.ulfberht.util.ProcessorUtil.hasAnnotationMirror
 import com.afollestad.ulfberht.util.ProcessorUtil.isAbstractClass
 import com.afollestad.ulfberht.util.ProcessorUtil.returnTypeAsTypeAndArgs
 import com.afollestad.ulfberht.util.ProcessorUtil.asTypeAndArgs
+import com.afollestad.ulfberht.util.ProcessorUtil.isViewModel
+import com.afollestad.ulfberht.util.ProcessorUtil.warn
 import com.afollestad.ulfberht.util.TypeAndArgs
 import com.afollestad.ulfberht.util.Types.BASE_COMPONENT
 import com.afollestad.ulfberht.util.Types.BASE_MODULE
@@ -85,6 +87,8 @@ internal class ModuleBuilder(
   private val environment: ProcessingEnvironment,
   private val dependencyGraph: DependencyGraph
 ) {
+  var haveViewModels: Boolean = false
+
   private lateinit var fullClassName: ClassName
   private var haveNonSingletons: Boolean = false
   private var haveSingletons: Boolean = false
@@ -98,6 +102,7 @@ internal class ModuleBuilder(
     }
     haveNonSingletons = false
     haveSingletons = false
+    haveViewModels = false
 
     val pkg = element.getPackage(environment)
         .also { fullClassName = element.getFullClassName(environment, it) }
@@ -373,13 +378,25 @@ internal class ModuleBuilder(
 
   private val Sequence<*>.lineBreak get() = if (count() > 1) "\n" else ""
 
-  private fun Element.providerGetName(): String {
-    return if (hasAnnotationMirror<Singleton>()) {
-      haveSingletons = true
-      SINGLETON_PROVIDER_EXTENSION_NAME
-    } else {
-      haveNonSingletons = true
-      FACTORY_EXTENSION_NAME
+  private fun ExecutableElement.providerGetName(): String {
+    val isSingleton = hasAnnotationMirror<Singleton>()
+    return when {
+      returnType.isViewModel(environment) -> {
+        if (isSingleton) {
+          environment.warn("$this: ViewModels cannot be Singleton. Annotation ignored.")
+        }
+        haveNonSingletons = true
+        haveViewModels = true
+        FACTORY_EXTENSION_NAME
+      }
+      isSingleton -> {
+        haveSingletons = true
+        SINGLETON_PROVIDER_EXTENSION_NAME
+      }
+      else -> {
+        haveNonSingletons = true
+        FACTORY_EXTENSION_NAME
+      }
     }
   }
 

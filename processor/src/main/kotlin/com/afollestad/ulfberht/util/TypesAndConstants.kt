@@ -58,6 +58,8 @@ internal object Names {
   const val RUNTIME_DEPS_NAME = "runtimeDependencies"
   const val GET_RUNTIME_DEP_NAME = "getRuntimeDependency"
   const val COMPONENT_PARAM_NAME = "component"
+
+  const val VIEW_MODEL_FACTORY_CREATE = "create"
 }
 
 /** @author Aidan Follestad (@afollestad) */
@@ -82,13 +84,24 @@ internal object Types {
 
   val UNSCOPED_PROVIDER = FactoryProvider::class.asTypeName()
   val SINGLETON_PROVIDER = SingletonProvider::class.asTypeName()
-
   val LOGGER = Logger::class.asTypeName()
-  val LIFECYCLE_OWNER = ClassName("androidx.lifecycle", "LifecycleOwner")
-  val LIFECYCLE_OBSERVER = ClassName("androidx.lifecycle", "LifecycleObserver")
+
+  // Lifecycle + Scopes
+  private const val LIFECYCLE_PKG = "androidx.lifecycle"
+  val LIFECYCLE_OWNER = ClassName(LIFECYCLE_PKG, "LifecycleOwner")
+  val LIFECYCLE_OBSERVER = ClassName(LIFECYCLE_PKG, "LifecycleObserver")
   val GET_SCOPE_METHOD = ClassName("com.afollestad.ulfberht", "getScope")
-  val ON_LIFECYCLE_EVENT = ClassName("androidx.lifecycle", "OnLifecycleEvent")
-  val LIFECYCLE_EVENT_ON_DESTROY = ClassName("androidx.lifecycle.Lifecycle.Event", "ON_DESTROY")
+  val ON_LIFECYCLE_EVENT = ClassName(LIFECYCLE_PKG, "OnLifecycleEvent")
+  val LIFECYCLE_EVENT_ON_DESTROY = ClassName("$LIFECYCLE_PKG.Lifecycle.Event", "ON_DESTROY")
+
+  // View Models
+  val VIEW_MODEL = ClassName(LIFECYCLE_PKG, "ViewModel")
+  val VIEW_MODEL_PROVIDERS = ClassName(LIFECYCLE_PKG, "ViewModelProviders")
+  val VIEW_MODEL_FACTORY = ClassName("$LIFECYCLE_PKG.ViewModelProvider", "Factory")
+
+  private const val ANDROIDX_FRAGMENT_PKG = "androidx.fragment.app"
+  val FRAGMENT = ClassName(ANDROIDX_FRAGMENT_PKG, "Fragment")
+  val FRAGMENT_ACTIVITY = ClassName(ANDROIDX_FRAGMENT_PKG, "FragmentActivity")
 }
 
 /** @author Aidan Follestad (@afollestad) */

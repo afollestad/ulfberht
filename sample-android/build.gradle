@@ -29,6 +29,9 @@ dependencies {
 
   implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:' + versions.kotlin
   implementation 'androidx.appcompat:appcompat:' + versions.androidxCore
+
+  implementation "androidx.lifecycle:lifecycle-viewmodel:${versions.lifecycle}"
+  implementation "androidx.lifecycle:lifecycle-extensions:${versions.lifecycle}"
 }
 
 apply from: '../spotless.gradle'

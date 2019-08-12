@@ -31,6 +31,7 @@ import com.afollestad.ulfberhtsample.login.LoginActivity
 class MainActivity : AppCompatActivity() {
   @Inject lateinit var session: Session
   @Inject lateinit var client: Client
+  @Inject lateinit var mainViewModel: MainViewModel
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)

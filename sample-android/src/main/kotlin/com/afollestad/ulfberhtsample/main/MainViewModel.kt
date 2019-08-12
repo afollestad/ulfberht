@@ -15,14 +15,8 @@
  */
 package com.afollestad.ulfberhtsample.main
 
-import com.afollestad.ulfberht.annotation.Binds
-import com.afollestad.ulfberht.annotation.Module
-import com.afollestad.ulfberhtsample.api.Client
-import com.afollestad.ulfberhtsample.api.RealClient
+import androidx.lifecycle.ViewModel
 
-@Module
-interface MainModule {
-  @Binds fun client(impl: RealClient): Client
-
-  @Binds fun mainViewModel(mainViewModel: MainViewModel): MainViewModel
+class MainViewModel : ViewModel() {
+  // TODO
 }

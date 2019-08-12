@@ -25,7 +25,8 @@ internal data class TypeAndArgs(
   val erasedType: TypeName,
   val genericArgs: Array<TypeName>,
   val qualifier: String?,
-  val isProvider: Boolean
+  val isProvider: Boolean,
+  val isViewModel: Boolean
 ) {
   val hasGenericArgs: Boolean = genericArgs.isNotEmpty()
   val getterName: String = if (isProvider) {
@@ -48,14 +49,17 @@ internal data class TypeAndArgs(
     if (erasedType != other.erasedType) return false
     if (!genericArgs.contentEquals(other.genericArgs)) return false
     if (qualifier != other.qualifier) return false
+    if (isProvider != other.isProvider) return false
+    if (isViewModel != other.isViewModel) return false
     return true
   }
 
   override fun hashCode(): Int {
     var result = fullType.hashCode()
     result = 31 * result + erasedType.hashCode()
-    result = 31 * result + genericArgs.contentHashCode()
     result = 31 * result + (qualifier?.hashCode() ?: 0)
+    result = 31 * result + isProvider.hashCode()
+    result = 31 * result + isViewModel.hashCode()
     return result
   }
 }

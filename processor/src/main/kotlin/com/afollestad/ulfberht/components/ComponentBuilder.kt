@@ -24,6 +24,7 @@ import com.afollestad.ulfberht.util.Names.CLASS_HEADER
 import com.afollestad.ulfberht.util.Names.COMPONENT_NAME_SUFFIX
 import com.afollestad.ulfberht.util.Names.FACTORY_EXTENSION_NAME
 import com.afollestad.ulfberht.util.Names.GENERIC_ARGS
+import com.afollestad.ulfberht.util.Names.GET_NAME
 import com.afollestad.ulfberht.util.Names.GET_PROVIDER_NAME
 import com.afollestad.ulfberht.util.Names.GET_RUNTIME_DEP_NAME
 import com.afollestad.ulfberht.util.Names.LIBRARY_PACKAGE
@@ -31,6 +32,7 @@ import com.afollestad.ulfberht.util.Names.MODULES_LIST_NAME
 import com.afollestad.ulfberht.util.Names.PARENT_NAME
 import com.afollestad.ulfberht.util.Names.RUNTIME_DEPS_NAME
 import com.afollestad.ulfberht.util.Names.QUALIFIER
+import com.afollestad.ulfberht.util.Names.VIEW_MODEL_FACTORY_CREATE
 import com.afollestad.ulfberht.util.Names.WANTED_TYPE
 import com.afollestad.ulfberht.util.ProcessorUtil.asFileName
 import com.afollestad.ulfberht.util.ProcessorUtil.asTypeElement
@@ -44,21 +46,29 @@ import com.afollestad.ulfberht.util.ProcessorUtil.getModulesTypes
 import com.afollestad.ulfberht.util.ProcessorUtil.getPackage
 import com.afollestad.ulfberht.util.ProcessorUtil.getParameter
 import com.afollestad.ulfberht.util.ProcessorUtil.injectedFieldsAndQualifiers
-import com.afollestad.ulfberht.util.ProcessorUtil.isLifecycleOwner
+import com.afollestad.ulfberht.util.ProcessorUtil.hasInterface
+import com.afollestad.ulfberht.util.ProcessorUtil.hasSuperClass
 import com.afollestad.ulfberht.util.ProcessorUtil.name
 import com.afollestad.ulfberht.util.ProcessorUtil.isVoid
+import com.afollestad.ulfberht.util.ProcessorUtil.warn
 import com.afollestad.ulfberht.util.Types.BASE_COMPONENT
 import com.afollestad.ulfberht.util.Types.BASE_MODULE
+import com.afollestad.ulfberht.util.Types.FRAGMENT
+import com.afollestad.ulfberht.util.Types.FRAGMENT_ACTIVITY
 import com.afollestad.ulfberht.util.Types.GET_SCOPE_METHOD
 import com.afollestad.ulfberht.util.Types.KCLASS_OF_ANY
 import com.afollestad.ulfberht.util.Types.LIFECYCLE_EVENT_ON_DESTROY
 import com.afollestad.ulfberht.util.Types.LIFECYCLE_OBSERVER
+import com.afollestad.ulfberht.util.Types.LIFECYCLE_OWNER
 import com.afollestad.ulfberht.util.Types.LOGGER
 import com.afollestad.ulfberht.util.Types.NULLABLE_BASE_COMPONENT
 import com.afollestad.ulfberht.util.Types.NULLABLE_KOTLIN_STRING
 import com.afollestad.ulfberht.util.Types.ON_LIFECYCLE_EVENT
 import com.afollestad.ulfberht.util.Types.PROVIDER_OF_T_NULLABLE
 import com.afollestad.ulfberht.util.Types.TYPE_VARIABLE_T
+import com.afollestad.ulfberht.util.Types.VIEW_MODEL
+import com.afollestad.ulfberht.util.Types.VIEW_MODEL_FACTORY
+import com.afollestad.ulfberht.util.Types.VIEW_MODEL_PROVIDERS
 import com.squareup.kotlinpoet.ANY
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
@@ -75,6 +85,7 @@ import com.squareup.kotlinpoet.STRING
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.TypeSpec.Builder
+import com.squareup.kotlinpoet.TypeVariableName
 import com.squareup.kotlinpoet.asTypeName
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.Element
@@ -92,7 +103,10 @@ internal class ComponentBuilder(
 ) {
   private lateinit var fullClassName: ClassName
 
-  fun generate(element: Element) {
+  fun generate(
+    element: Element,
+    haveViewModels: Boolean
+  ) {
     if (element.kind != INTERFACE) {
       environment.error(
           "${element.simpleName}: @Component annotation can only decorate an interface."
@@ -107,12 +121,13 @@ internal class ComponentBuilder(
     val component = element.getAnnotationMirror<Component>()!!
     val scopeName = component.getParameter<String>(SCOPE_NAME) ?: ""
     val moduleTypes = component.getModulesTypes(environment)
-    val typeBuilder = componentTypeBuilder(fileName, fullClassName, scopeName, moduleTypes)
+    val typeBuilder =
+      componentTypeBuilder(haveViewModels, fileName, fullClassName, scopeName, moduleTypes)
 
     element.enclosedElements
         .filterMethods()
         .filter { it.simpleName.toString() == INJECT_METHOD_NAME }
-        .map { injectFunction(it) }
+        .map(::injectFunction)
         .filter { it != null }
         .forEach { typeBuilder.addFunction(it!!) }
 
@@ -124,6 +139,7 @@ internal class ComponentBuilder(
   }
 
   private fun componentTypeBuilder(
+    haveViewModels: Boolean,
     fileName: String,
     superInterface: TypeName,
     scope: String,
@@ -133,6 +149,7 @@ internal class ComponentBuilder(
         .addKdoc(CLASS_HEADER)
         .addSuperinterface(superInterface)
         .addSuperinterface(BASE_COMPONENT)
+        .applyIf(haveViewModels) { addSuperinterface(VIEW_MODEL_FACTORY) }
         .primaryConstructor(typeConstructor())
         .addProperties(
             listOf(
@@ -145,6 +162,7 @@ internal class ComponentBuilder(
             )
         )
         .addFunction(getProviderFunction(moduleTypes))
+        .applyIf(haveViewModels) { addFunction(viewModelFactoryCreateFunction()) }
   }
 
   private fun propertyScope(value: String): PropertySpec {
@@ -279,35 +297,47 @@ internal class ComponentBuilder(
     val paramName = parameter.simpleName.toString()
     val paramElement = parameter.asType()
         .asTypeElement()
-
     val code = CodeBlock.builder()
+
     for ((field, qualifier) in paramElement.enclosedElements.injectedFieldsAndQualifiers()) {
       val fieldTypeAndArgs = field.asTypeAndArgs(environment)
       val getterName = fieldTypeAndArgs.getterName
       val doubleBang = if (fieldTypeAndArgs.isProvider) "!!" else ""
-      code.apply {
-        add("$paramName.%N = ", field.simpleName)
-        add("$getterName(%T::class", fieldTypeAndArgs.erasedType)
-      }
-      code.applyIf(fieldTypeAndArgs.hasGenericArgs) {
-        add(", setOf(")
-        for ((index, typeArg) in fieldTypeAndArgs.genericArgs.withIndex()) {
-          if (index > 0) add(", ")
-          add("%T::class", typeArg)
+
+      code.add("$paramName.%N = ", field.simpleName)
+      if (fieldTypeAndArgs.isViewModel) {
+        // TODO move this if block to a separate module?
+        if (!paramElement.hasSuperClass(environment, FRAGMENT, FRAGMENT_ACTIVITY)) {
+          environment.warn("$paramElement cannot inject view models.")
+          return null
         }
-        add(")")
+        code.add(
+            "%T.of($paramName, this)[%T::class.java]",
+            VIEW_MODEL_PROVIDERS,
+            fieldTypeAndArgs.erasedType
+        )
+      } else {
+        code.add("$getterName(%T::class", fieldTypeAndArgs.erasedType)
+        code.applyIf(fieldTypeAndArgs.hasGenericArgs) {
+          add(", setOf(")
+          for ((index, typeArg) in fieldTypeAndArgs.genericArgs.withIndex()) {
+            if (index > 0) add(", ")
+            add("%T::class", typeArg)
+          }
+          add(")")
+        }
+        code.applyIf(qualifier != null) {
+          add(", $QUALIFIER = %S", qualifier)
+        }
+        code.add(")$doubleBang")
+        code.applyIf(!fieldTypeAndArgs.isProvider && fieldTypeAndArgs.hasGenericArgs) {
+          add(" as %T", fieldTypeAndArgs.fullType)
+        }
       }
-      code.applyIf(qualifier != null) {
-        add(", $QUALIFIER = %S", qualifier)
-      }
-      code.add(")$doubleBang")
-      code.applyIf(!fieldTypeAndArgs.isProvider && fieldTypeAndArgs.hasGenericArgs) {
-        add(" as %T", fieldTypeAndArgs.fullType)
-      }
+
       code.add("\n")
     }
 
-    // TODO move this to a separate module?
     if (!maybeAddLifecycleObserver(paramElement, paramName, code)) {
       return null
     }
@@ -319,14 +349,29 @@ internal class ComponentBuilder(
         .build()
   }
 
+  // TODO move this to a separate module?
+  private fun viewModelFactoryCreateFunction(): FunSpec {
+    val typeVariableT = TypeVariableName("T", VIEW_MODEL)
+    val classOfT = Class::class.asTypeName()
+        .parameterizedBy(typeVariableT)
+    return FunSpec.builder(VIEW_MODEL_FACTORY_CREATE)
+        .addModifiers(OVERRIDE)
+        .addTypeVariable(typeVariableT)
+        .addParameter("modelClass", classOfT)
+        .returns(typeVariableT)
+        .addCode("return $GET_NAME(modelClass.kotlin)\n")
+        .build()
+  }
+
+  // TODO move this to a separate module?
   private fun maybeAddLifecycleObserver(
     paramElement: TypeElement,
     paramName: String,
     code: CodeBlock.Builder
   ): Boolean = paramElement.getAnnotationMirror<ScopeOwner>()?.let { scopeOwner ->
-    if (!paramElement.isLifecycleOwner()) {
+    if (!paramElement.hasInterface(environment, LIFECYCLE_OWNER)) {
       environment.error(
-          "$paramElement: @ScopeOwner can only be used on classes which implement LifecycleOwner."
+          "$paramElement: @ScopeOwner can only be used on classes which implement $LIFECYCLE_OWNER."
       )
       return false
     }

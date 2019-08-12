@@ -20,7 +20,10 @@ import com.afollestad.ulfberht.annotation.Module
 import com.afollestad.ulfberht.components.ComponentBuilder
 import com.afollestad.ulfberht.modules.ModuleBuilder
 import com.afollestad.ulfberht.util.DependencyGraph
+import com.afollestad.ulfberht.util.Names.MODULE_NAME_SUFFIX
 import com.afollestad.ulfberht.util.ProcessorUtil.filterClassesAndInterfaces
+import com.afollestad.ulfberht.util.ProcessorUtil.getAnnotationMirror
+import com.afollestad.ulfberht.util.ProcessorUtil.getModulesTypes
 import javax.annotation.processing.AbstractProcessor
 import javax.annotation.processing.RoundEnvironment
 import javax.annotation.processing.SupportedSourceVersion
@@ -46,6 +49,7 @@ class UlfberhtProcessor : AbstractProcessor() {
   private val extensionsBuilder: ExtensionsBuilder by lazy {
     ExtensionsBuilder(environment = processingEnv)
   }
+  private val modulesWithViewModels: MutableList<String> = mutableListOf()
 
   override fun getSupportedAnnotationTypes(): MutableSet<String> {
     return mutableSetOf(
@@ -60,16 +64,32 @@ class UlfberhtProcessor : AbstractProcessor() {
   ): Boolean {
     if (annotations.isEmpty()) {
       dependencyGraph.clear()
+      modulesWithViewModels.clear()
       return false
     }
-    extensionsBuilder.generate()
-    roundEnv.getElementsAnnotatedWith(Component::class.java)
-        .filterClassesAndInterfaces()
-        .forEach(componentBuilder::generate)
+
     roundEnv.getElementsAnnotatedWith(Module::class.java)
         .filterClassesAndInterfaces()
-        .forEach(moduleBuilder::generate)
+        .forEach {
+          moduleBuilder.generate(it)
+          if (moduleBuilder.haveViewModels) {
+            modulesWithViewModels.add(it.toString())
+          }
+        }
+    roundEnv.getElementsAnnotatedWith(Component::class.java)
+        .filterClassesAndInterfaces()
+        .forEach {
+          val modulesInComponent =
+            it.getAnnotationMirror<Component>()!!.getModulesTypes(processingEnv)
+          val haveViewModels = modulesInComponent.any { moduleInComponent ->
+            modulesWithViewModels.any { moduleWithViewModel ->
+              "$moduleInComponent" == "$moduleWithViewModel$MODULE_NAME_SUFFIX"
+            }
+          }
+          componentBuilder.generate(it, haveViewModels)
+        }
 
+    extensionsBuilder.generate()
     return true
   }
 }
