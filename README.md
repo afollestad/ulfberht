@@ -33,7 +33,7 @@ track of everything for you and injects things where they are needed.
     1. [Basics](#basics)
     2. [Parenting](#parenting)
     4. [Scoping](#scoping)
-5. [Injection](#injection)
+5. [Putting Modules and Components to Use - Injection](#putting-modules-and-components-to-use---injection)
 6. [Runtime Dependencies](#runtime-dependencies)
 7. [Android](#android)
     1. [ScopeOwners](#scope-owners)
@@ -359,7 +359,7 @@ getScope(PARENT_SCOPE).exit()
 
 ---
 
-# Injection
+# Putting Modules and Components to Use - Injection
 
 To perform injection, you need to retrieve the component that's able to inject into your target.
 
