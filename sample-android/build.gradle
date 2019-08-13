@@ -10,7 +10,7 @@ android {
   }
 
   defaultConfig {
-    applicationId "com.afollestad.statemachinesample"
+    applicationId "com.afollestad.ulfberhtsample"
     minSdkVersion versions.minSdk
     targetSdkVersion versions.compileSdk
     versionCode versions.publishVersionCode

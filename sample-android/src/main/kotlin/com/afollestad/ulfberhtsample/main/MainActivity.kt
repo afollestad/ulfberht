@@ -22,6 +22,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.afollestad.ulfberht.annotation.Inject
 import com.afollestad.ulfberht.annotation.ScopeOwner
 import com.afollestad.ulfberht.component
+import com.afollestad.ulfberhtsample.ParamNames.APP_CONTEXT
 import com.afollestad.ulfberhtsample.ScopeNames.MAIN
 import com.afollestad.ulfberhtsample.api.Client
 import com.afollestad.ulfberhtsample.api.Session
@@ -35,7 +36,9 @@ class MainActivity : AppCompatActivity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    component<MainComponent>().inject(this)
+    component<MainComponent>(
+        APP_CONTEXT to applicationContext
+    ).inject(this)
     // TODO use client
   }
 

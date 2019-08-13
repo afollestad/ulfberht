@@ -264,8 +264,12 @@ internal class ComponentBuilder(
             if ($PARENT_NAME != null && $CALLED_BY === $PARENT_NAME) return null
             val runtimeProvider = $GET_RUNTIME_DEP_NAME<%T>($QUALIFIER)
                   ?.run { $FACTORY_EXTENSION_NAME { this } }
-            return runtimeProvider ?: $PARENT_NAME?.$GET_PROVIDER_NAME($WANTED_TYPE, $GENERIC_ARGS, $QUALIFIER, $CALLED_BY)
+            return runtimeProvider ?: $PARENT_NAME?.let {
+              it.$RUNTIME_DEPS_NAME = $RUNTIME_DEPS_NAME
+              it.$GET_PROVIDER_NAME<%T>($WANTED_TYPE, $GENERIC_ARGS, $QUALIFIER, $CALLED_BY)
+            }
             """.trimIndent() + "\n",
+            TYPE_VARIABLE_T,
             TYPE_VARIABLE_T
         )
     )
