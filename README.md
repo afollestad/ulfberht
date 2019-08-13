@@ -12,11 +12,12 @@
 *A little more bad-ass than a Dagger, huh?*
 
 Dependency injection is a technique in which an application supplies dependencies of an object. 
-"Dependencies" in this context doesn't necessarily mean dependencies like in a Gradle file. Dependencies 
-in this context are services (i.e. APIs, classes) that are needed in certain parts of your code.
+"Dependencies" in this context are not dependencies like in a Gradle file. Dependencies are services 
+(i.e. APIs, classes) that are needed in certain parts of your code.
 
 Dependency injection enables you to pass around services without manual construction - it keeps 
-track of everything for you and injects things where they are needed.
+track of everything for you and injects things where they are needed. The need for this is more 
+apparent when you deal with very large applications.
 
 ---
 
@@ -196,7 +197,10 @@ interface DemoModule {
 ### Singletons
 
 There's a `@Singleton` annotation that can be used to mark `@Binds` and `@Provides` methods. When 
-it's used, a module will hold the same instance of the provided object until the module is destroyed.
+it's used, a module in a specific component will hold the same instance of the provided object until 
+the module is destroyed. *If you were to use the same module in two different components, 
+`ComponentA` and `ComponentB`, each component would have a separate singleton instance of what 
+you're providing. They wouldn't share between each other.*
 
 ```kotlin
 @Module
@@ -364,20 +368,19 @@ getScope(PARENT_SCOPE).exit()
 To perform injection, you need to retrieve the component that's able to inject into your target.
 
 ```kotlin
-class SomeClass {
+class MyActivity : AppCompatActivity() {
   @Inject lateinit var someDependency: NeededClass
   
-  init {
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    
+    // Perform injection, `SomeComponent` would have an inject() method defined for `MyActivity`
     component<SomeComponent>().inject(this)
-  }
-  
-  fun doSomething() {
+    
+    // Use the injected dependency!
     someDependency.helloWorld()
   }
 }
-
-val someClass = SomeClass()
-someClass.doSomething()
 ```
 
 This code assumes that one of the modules going up the graph from `SomeComponent` can supply 
