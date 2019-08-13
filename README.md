@@ -58,8 +58,8 @@ constructor parameters, they are filled for you by generated code.
 
 ```gradle
 dependencies {
-  implementation "com.afollestad:ulfberht:0.3.2"
-  kapt "com.afollestad:ulfbert-processor:0.3.2"
+  implementation "com.afollestad:ulfberht:0.4.0"
+  kapt "com.afollestad:ulfbert-processor:0.4.0"
 }
 ```
 

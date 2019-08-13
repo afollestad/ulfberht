@@ -1,4 +1,5 @@
-0.3.2
+0.4.0
 
-* More generics support bug fixes.
-* Improved circular dependency detection a bit.
+* Android `ViewModel` injection!
+* You can inject `Provider<>`'s of types.
+* Bug fixes, code cleanup, generated code cleanup, etc.
