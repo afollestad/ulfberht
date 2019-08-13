@@ -35,7 +35,9 @@ track of everything for you and injects things where they are needed.
     4. [Scoping](#scoping)
 5. [Injection](#injection)
 6. [Runtime Dependencies](#runtime-dependencies)
-7. [Android ScopeOwners](#android-scopeowners)
+7. [Android](#android)
+    1. [ScopeOwners](#scope-owners)
+    2. [ViewModels](#viewmodels)
 
 ---
  
@@ -505,7 +507,9 @@ Runtime dependencies in a component are made available to all of the component's
 
 ---
 
-# Android ScopeOwners
+# Android
+
+### ScopeOwners
 
 On Android, you can automatically attach scopes to `LifecycleOwner`'s, such as:
 * `Fragment` (from `androidx.app`)
@@ -563,3 +567,15 @@ class LoginActivity : AppCompatActivity() {
 
 Since `LoginComponent` is being injected, _and_ because it's marked as being in `LOGIN_SCOPE`, it 
 will automatically destroy itself when `LoginActivity` is destroyed. 
+
+---
+
+### ViewModels
+
+On Android, injecting AndroidX `ViewModel`'s is supported. You don't have to do anything special, 
+just inject the `ViewModel` as you would inject anything else. 
+
+However, you can only inject a `ViewModel` into an `androidx.fragment.app.Fragment` or 
+`androidx.fragment.app.FragmentActivity` (includes `AppCompatActivity` and descendants). Why? 
+Internally, Ulfberht's generated code delegates through `ViewModelProviders` which must attach to 
+an Activity or Fragment.
