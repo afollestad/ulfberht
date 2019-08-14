@@ -25,13 +25,12 @@ class App : Application() {
 
   override fun onCreate() {
     super.onCreate()
+    if (DEBUG) {
+      Logger.install { Log.d("Ulfberht", it) }
+    }
 
     component<AppComponent>(
         AppContext::class to this
     ).inject(this)
-
-    if (DEBUG) {
-      Logger.install { Log.d("Ulfberht", it) }
-    }
   }
 }

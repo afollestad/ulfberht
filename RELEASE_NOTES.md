@@ -1,5 +1,3 @@
-0.5.0
+0.6.0
 
-* Instead of setting `parent` in the `Component` annotation, you assign a component `children`. See 
-the updated README.
-* Internal cleanup.
+* Qualifiers are annotation-based instead of string-based.

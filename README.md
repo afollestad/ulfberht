@@ -56,8 +56,8 @@ code generation, so you *don't* need to write boilerplate and you *don't* need t
 
 ```gradle
 dependencies {
-  implementation "com.afollestad:ulfberht:0.5.0"
-  kapt "com.afollestad:ulfbert-processor:0.5.0"
+  implementation "com.afollestad:ulfberht:0.6.0"
+  kapt "com.afollestad:ulfbert-processor:0.6.0"
 }
 ```
 
