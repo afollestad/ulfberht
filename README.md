@@ -347,9 +347,9 @@ interface ChildComponent
 getScope(PARENT_SCOPE).exit()
 ```
 
-<img src="https://github.com/afollestad/ulfberht/blob/master/art/destruction_diagram.png?raw=true" />
+*Parent components will destroy all of their children (components and their modules) as well.*
 
-**Parent components will destroy all of their children (components and their modules) as well.** 
+<img src="https://github.com/afollestad/ulfberht/blob/master/art/destruction_diagram.png?raw=true" /> 
 
 ---
 
@@ -378,10 +378,10 @@ class MyActivity : AppCompatActivity() {
 }
 ```
 
-<img src="https://github.com/afollestad/ulfberht/blob/master/art/inject_diagram.png?raw=true" />
-
 This code assumes that one of the modules going up the graph from `Component5` can supply 
 `NeededClass` with a `@Binds` or `@Provides` method.
+
+<img src="https://github.com/afollestad/ulfberht/blob/master/art/inject_diagram.png?raw=true" />
 
 ---
 
