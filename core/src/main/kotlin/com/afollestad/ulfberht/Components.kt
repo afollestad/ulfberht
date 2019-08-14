@@ -95,15 +95,16 @@ internal object Components {
  * @author Aidan Follestad (@afollestad)
  */
 inline fun <reified T : Any> component(
-  vararg runtimeDependencies: Pair<String?, Any>
+  vararg runtimeDependencies: Pair<KClass<*>, Any>
 ): T {
   return Components.get(T::class)
-      .withRuntimeDependencies(runtimeDependencies.toMap())
+      .withRuntimeDependencies(
+          runtimeDependencies.toMap().mapKeys { "@${it.key.qualifiedName}" })
 }
 
 @PublishedApi
 internal inline fun <reified T : Any> Any.withRuntimeDependencies(
-  runtimeDependencies: Map<String?, Any>
+  runtimeDependencies: Map<String, Any>
 ): T {
   return if (runtimeDependencies.isEmpty()) {
     this as T

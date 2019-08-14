@@ -13,15 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@file:Suppress("unused")
+package com.afollestad.ulfberhtsample.app
 
-package com.afollestad.ulfberht.annotation
+import com.afollestad.ulfberht.annotation.Qualifier
 
-/**
- * Used to add an injection qualifier to a constructor or function parameter.
- *
- * @author Aidan Follestad (@afollestad)
- */
-@Retention(AnnotationRetention.RUNTIME)
-@Target(AnnotationTarget.TYPE_PARAMETER, AnnotationTarget.VALUE_PARAMETER)
-annotation class Param(val qualifier: String)
+@Qualifier
+annotation class AppContext

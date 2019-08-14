@@ -20,10 +20,13 @@ import com.afollestad.ulfberht.annotation.Binds
 import com.afollestad.ulfberht.annotation.Component
 import com.afollestad.ulfberht.annotation.Inject
 import com.afollestad.ulfberht.annotation.Module
-import com.afollestad.ulfberht.annotation.Param
 import com.afollestad.ulfberht.annotation.Provides
+import com.afollestad.ulfberht.annotation.Qualifier
 import com.afollestad.ulfberht.common.Logger
 import com.afollestad.ulfberht.component
+
+@Qualifier
+annotation class Message
 
 data class SomeClass<A, B>(
   val left: A,
@@ -62,8 +65,8 @@ interface Two {
 }
 
 class TwoImpl(
-  @Param("message") private val message: String,
-  @Param("message") private val messageProvider: Provider<String>
+  @Message private val message: String,
+  @Message private val messageProvider: Provider<String>
 ) : Two {
   override fun doSomething() {
     println(message)
@@ -75,7 +78,7 @@ class Main {
   @Inject lateinit var one: One
   @Inject lateinit var someClass1: SomeClass<String, Boolean>
   @Inject lateinit var someClass2: SomeClass<Int, Long>
-  @Inject("message") lateinit var messageProvider: Provider<String>
+  @Inject @field:Message lateinit var messageProvider: Provider<String>
   @Inject lateinit var someClassProvider: Provider<SomeClass<String, Boolean>>
 
   fun doSomething() {
@@ -86,7 +89,7 @@ class Main {
 
   init {
     component<MyComponent>(
-        "message" to "Hello, World!"
+        Message::class to "Hello, World!"
     ).inject(this)
   }
 }

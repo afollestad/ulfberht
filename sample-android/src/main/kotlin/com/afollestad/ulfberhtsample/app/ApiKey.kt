@@ -13,8 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.afollestad.ulfberhtsample
+package com.afollestad.ulfberhtsample.app
 
-object Qualifiers {
-  const val API_KEY = "api_key"
-}
+import com.afollestad.ulfberht.annotation.Qualifier
+
+@Qualifier
+annotation class ApiKey

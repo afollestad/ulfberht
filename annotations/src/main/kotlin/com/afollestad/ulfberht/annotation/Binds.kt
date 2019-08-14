@@ -24,4 +24,4 @@ package com.afollestad.ulfberht.annotation
  */
 @Retention(AnnotationRetention.SOURCE)
 @Target(AnnotationTarget.FUNCTION)
-annotation class Binds(val qualifier: String = "")
+annotation class Binds

@@ -19,13 +19,13 @@ import com.afollestad.ulfberht.annotation.Binds
 import com.afollestad.ulfberht.annotation.Module
 import com.afollestad.ulfberht.annotation.Provides
 import com.afollestad.ulfberht.annotation.Singleton
-import com.afollestad.ulfberhtsample.Qualifiers.API_KEY
 import com.afollestad.ulfberhtsample.api.RealSession
 import com.afollestad.ulfberhtsample.api.Session
 
 @Module
 abstract class AppProvideModule {
-  @Provides(API_KEY) fun apiKey(): String {
+  @Provides @ApiKey
+  fun apiKey(): String {
     return "o3riuhfoij30p9i2ug34igub"
   }
 }

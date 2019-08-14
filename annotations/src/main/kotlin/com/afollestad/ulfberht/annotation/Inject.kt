@@ -24,4 +24,4 @@ package com.afollestad.ulfberht.annotation
  */
 @Retention(AnnotationRetention.SOURCE)
 @Target(AnnotationTarget.FIELD)
-annotation class Inject(val qualifier: String = "")
+annotation class Inject

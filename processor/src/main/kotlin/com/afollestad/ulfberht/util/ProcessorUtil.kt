@@ -16,12 +16,9 @@
 package com.afollestad.ulfberht.util
 
 import com.afollestad.ulfberht.Provider
-import com.afollestad.ulfberht.annotation.Binds
 import com.afollestad.ulfberht.annotation.Inject
-import com.afollestad.ulfberht.annotation.Param
-import com.afollestad.ulfberht.annotation.Provides
+import com.afollestad.ulfberht.annotation.Qualifier
 import com.afollestad.ulfberht.util.Names.MODULES_LIST_NAME
-import com.afollestad.ulfberht.util.Names.QUALIFIER
 import com.afollestad.ulfberht.util.Types.VIEW_MODEL
 import com.squareup.kotlinpoet.BOOLEAN
 import com.squareup.kotlinpoet.ClassName
@@ -69,6 +66,13 @@ internal object ProcessorUtil {
 
   inline fun <reified T : Any> Element.hasAnnotationMirror(): Boolean {
     return getAnnotationMirror<T>() != null
+  }
+
+  private fun Element.getQualifier(): String? {
+    return annotationMirrors.singleOrNull { ann ->
+      ann.annotationType.asElement()
+        .hasAnnotationMirror<Qualifier>()
+    }?.toString()
   }
 
   fun TypeMirror.asTypeAndArgs(
@@ -124,23 +128,20 @@ internal object ProcessorUtil {
   fun VariableElement.asTypeAndArgs(
     env: ProcessingEnvironment
   ): TypeAndArgs {
-    val qualifier = getAnnotationMirror<Param>().qualifier
     return asType().asTypeAndArgs(
         env = env,
         nullable = isNullable(),
-        qualifier = qualifier
+        qualifier = getQualifier()
     )
   }
 
   fun ExecutableElement.returnTypeAsTypeAndArgs(
     env: ProcessingEnvironment
   ): TypeAndArgs {
-    val qualifier = (getAnnotationMirror<Provides>() ?: getAnnotationMirror<Binds>())
-        .qualifier
     return returnType.asTypeAndArgs(
         env = env,
         nullable = isNullable(),
-        qualifier = qualifier
+        qualifier = getQualifier()
     )
   }
 
@@ -166,7 +167,7 @@ internal object ProcessorUtil {
   fun Collection<Element>.injectedFieldsAndQualifiers(): Sequence<Pair<VariableElement, String?>> {
     return filterFields()
         .filter { it.getAnnotationMirror<Inject>() != null }
-        .map { Pair(it, it.getAnnotationMirror<Inject>()!!.getParameter<String>("qualifier")) }
+        .map { Pair(it, it.getQualifier()) }
   }
 
   fun Collection<Element>.filterMethods(): Sequence<ExecutableElement> {
@@ -317,19 +318,9 @@ internal object ProcessorUtil {
         asTypeElement().getSuperClass(env).isViewModel(env)
   }
 
-//  fun TypeMirror?.isActivityOrFragment(): Boolean {
-//    return
-//  }
-
   val AnnotationMirror?.name: String?
     get() {
       val qualifier: String = this?.getParameter("name") ?: return null
-      return if (qualifier.isEmpty()) null else qualifier
-    }
-
-  private val AnnotationMirror?.qualifier: String?
-    get() {
-      val qualifier: String = this?.getParameter(QUALIFIER) ?: return null
       return if (qualifier.isEmpty()) null else qualifier
     }
 

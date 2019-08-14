@@ -34,7 +34,7 @@ interface BaseComponent : ScopeObserver {
   val parentType: KClass<*>?
   val children: MutableSet<BaseComponent>
   val modules: Set<BaseModule>
-  var runtimeDependencies: Map<String?, Any>?
+  var runtimeDependencies: Map<String, Any>?
 
   @Suppress("UNCHECKED_CAST")
   fun <T : Any> get(

@@ -13,25 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.afollestad.ulfberhtsample.app
+@file:Suppress("unused")
 
-import android.app.Application
-import android.util.Log
-import com.afollestad.ulfberht.common.Logger
-import com.afollestad.ulfberht.component
-import com.afollestad.ulfberhtsample.BuildConfig.DEBUG
+package com.afollestad.ulfberht.annotation
 
-class App : Application() {
-
-  override fun onCreate() {
-    super.onCreate()
-
-    component<AppComponent>(
-        AppContext::class to this
-    ).inject(this)
-
-    if (DEBUG) {
-      Logger.install { Log.d("Ulfberht", it) }
-    }
-  }
-}
+/**
+ * Marks another annotation class as a qualifier.
+ *
+ * @author Aidan Follestad (@afollestad)
+ */
+@Retention(AnnotationRetention.SOURCE)
+@Target(AnnotationTarget.ANNOTATION_CLASS)
+annotation class Qualifier

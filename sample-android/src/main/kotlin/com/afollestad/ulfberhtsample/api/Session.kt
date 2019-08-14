@@ -16,8 +16,7 @@
 package com.afollestad.ulfberhtsample.api
 
 import android.content.Context
-import com.afollestad.ulfberht.annotation.Param
-import com.afollestad.ulfberhtsample.ParamNames.APP_CONTEXT
+import com.afollestad.ulfberhtsample.app.AppContext
 
 interface Session {
   fun setAuthToken(token: String)
@@ -28,7 +27,7 @@ interface Session {
 }
 
 class RealSession(
-  @Param(APP_CONTEXT) private val context: Context
+  @AppContext private val context: Context
 ) : Session {
   private var authToken: String? = null
 

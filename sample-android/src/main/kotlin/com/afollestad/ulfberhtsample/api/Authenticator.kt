@@ -16,8 +16,7 @@
 package com.afollestad.ulfberhtsample.api
 
 import android.util.Log
-import com.afollestad.ulfberht.annotation.Param
-import com.afollestad.ulfberhtsample.Qualifiers.API_KEY
+import com.afollestad.ulfberhtsample.app.ApiKey
 
 interface Authenticator {
   fun login(
@@ -27,7 +26,7 @@ interface Authenticator {
 }
 
 class RealAuthenticator(
-  @Param(API_KEY) private val apiKey: String,
+  @ApiKey private val apiKey: String,
   private val session: Session
 ) : Authenticator {
   override fun login(

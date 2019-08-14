@@ -246,7 +246,7 @@ internal class ComponentBuilder(
 
   private fun propertyRuntimeDependencies(): PropertySpec {
     val propertyType = MAP
-        .parameterizedBy(NULLABLE_KOTLIN_STRING, ANY)
+        .parameterizedBy(STRING, ANY)
         .copy(nullable = true)
     return PropertySpec.builder(RUNTIME_DEPS_NAME, propertyType, OVERRIDE)
         .mutable()

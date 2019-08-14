@@ -9,15 +9,10 @@
 > remain unknown to the Vikings' rivals for centuries, the Ulfberht was a revolutionary high-tech 
 > tool as well as a work of art.
 
-*A little more bad-ass than a Dagger, huh?*
-
-Dependency injection is a technique in which an application supplies dependencies of an object. 
-"Dependencies" in this context are not dependencies like in a Gradle file. Dependencies are services 
-(i.e. APIs, classes) that are needed in certain parts of your code.
-
-Dependency injection enables you to pass around services without manual construction - it keeps 
-track of everything for you and injects things where they are needed. The need for this is more 
-apparent when you deal with very large applications.
+*A little more bad-ass than a Dagger.* Dependency injection is a technique in which an application 
+supplies dependencies of an object. "Dependencies" in this context are not dependencies like in a 
+Gradle file. Dependencies are services (i.e. APIs, classes) that are needed in certain parts of 
+your code.
 
 ---
 
@@ -51,9 +46,9 @@ based rather than reflection-based, while still being written in Kotlin. And I w
 scoping support, especially on Android. _This is the result._
 
 You may be wondering what makes this library different than KOIN or other Kotlin "DI" libraries? 
-Ulfberht uses annotation processing to do actual dependency injection vs. plain service location. 
-A big example of this difference is that you don't need to manually tell this library how to fill 
-constructor parameters, they are filled for you by generated code.
+Libraries like KOIN are just service locators - you need to build the dependency graph manually, 
+filling in constructors, etc. Annotation processor based DI libraries handle this for you with 
+code generation, so you *don't* need to write boilerplate and you *don't* need to use reflection.
 
 ---
  
@@ -387,77 +382,66 @@ This code assumes that one of the modules going up the graph from `Component5` c
 
 # Qualifiers
 
-Qualifiers are simple identifiers that associate a type that may be broad, like a string, with a 
-very specific bound or provided instance. There are a few places where you can specify a qualifier.
-
-First, the `@Binds` and `@Provides` annotations take a qualifier:
+Qualifiers are simple identifiers that associate a type with a very specific bound or provided 
+instance. A qualifier is a special type of annotation, which is defined like this:
 
 ```kotlin
-const val QUALIFIER_ONE = "one"
-const val QUALIFIER_TWO = "two"
+@Qualifier
+annotation class DemoQualifier1
 
+@Qualifier
+annotation class DemoQualifier2
+```
+
+You use it to mark `@Binds` and `@Provides` functions:
+
+```kotlin
 @Module
 interface DemoModule1 {
-  @Binds(QUALIFIER_ONE)
-  fun demoClass1(impl: Demo1Impl): Demo1
-  
-  @Binds(QUALIFIER_ONE)
-  fun demoClass2(impl: Demo2Impl): Demo2
+  @Binds @Singleton @DemoQualifier1
+  fun demoClass(impl: Demo1Impl): Demo1
 }
 
 @Module
 abstract class DemoModule2 {
-  @Provides(QUALIFIER_TWO)
-  fun demoClass1(): Demo1 {
+  @Provides @Singleton @DemoQualifier2
+  fun demoClass(): Demo1 {
     return Demo1Impl()
-  }
-  
-  @Provides(QUALIFIER_TWO)
-  fun demoClass2(): Demo2 {
-    return Demo2Impl()
   }
 }
 ```
 
-Second, constructor parameters take a qualifier via a `@Param` annotation:
+Then, you can mark constructor parameters with it...
 
 ```kotlin
 class SomeInjectedClass(
-  @Param(QUALIFIER_ONE) val someDependency: Demo1,
-  @Param(QUALIFIER_TWO) val anotherDependency: Demo1
+  @DemoQualifier1 val someDependency: Demo1,
+  @DemoQualifier2 val anotherDependency: Demo1
 ) {
   ...
 }
 ```
 
-Third, `@Provides` method parameters take a qualifier also via the `@Param` annotation:
-
-```kotlin
-@Module
-abstract class DemoModule2 {
-  @Provides 
-  fun demoClass1(
-    @Param(QUALIFIER_ONE) neededDependency: Demo2
-  ): Demo1 {
-    return Demo1Impl()
-  }
-}
-```
-
-Finally, the `@Inject` annotation takes a qualifier as well:
+...along with `@Inject` targets (the `field:` prefix on the annotation name is important in Kotlin):
 
 ```kotlin
 class SomeClass {
-  @Inject(QUALIFIER_ONE) 
-  lateinit var someDependency: Demo1
-  @Inject(QUALIFIER_TWO) 
-  lateinit var anotherDependency: Demo1
+  @Inject @field:DemoQualifier1
+  lateinit var someDependency1: Demo1
+  @Inject @field:DemoQualifier2 
+  lateinit var someDependency2: Demo1
 
   init {
     component<SomeComponent>().inject(this)
   }
 }
-``` 
+```
+
+You will get two completely separate instances of `Demo1`, since two different qualifiers are being 
+used. `@Singleton` was applied for demo purposes to show that it'll store two different instances.
+But even without that, you're providing two different things. This could be useful if you were 
+providing primitives, like strings, or an interface for something like preferences. There's a lot of
+possibilities. 
 
 ---
 
@@ -467,14 +451,19 @@ Sometimes your app may need to be able to inject something that is defined at ru
 that cannot be constructed in a module. A good example of when this would be necessary is in 
 an Android application, like if you needed to inject the Application context.
 
-First, you tag constructor parameters that need to be provided at runtime with the `@Param` 
-annotation, which is discussed in [Qualifiers](#qualifiers) above.
+First, you tag constructor parameters or fields that need to be provided at runtime with a 
+qualifier annotation, which is discussed in [Qualifiers](#qualifiers) above.
 
 ```kotlin
-const val APP_CONTEXT: String = "app_context"
+@Qualifier
+annotation class AppContext
+
+@Qualifier
+annotation class ApiKey
 
 class StringRetriever(
-  @Param(APP_CONTEXT) val appContext: Context
+  @AppContext val appContext: Context,
+  @ApiKey val apiKey: String
 ) {
   fun getString(@IdRes res: Int): String {
     return appContext.resources.getString(res)
@@ -482,28 +471,28 @@ class StringRetriever(
 }
 ```
 
-At injection time, you pass mapped runtime dependencies into the `component` method. They are available 
-for injection until the component is destroyed, or its parents destroy it. 
+At injection time, you pass mapped runtime dependencies into the `component<>()` method. They are 
+available for injection until the component is destroyed, or its parents destroy it. 
 
 ```kotlin
-// Should ideally be the same constant above, rather than being defined twice
-const val APP_CONTEXT: String = "app_context"
-
 class LoginActivity : AppCompatActivity() {
   @Inject 
-  lateinit var stringRetriever: StringRetriever 
+  lateinit var stringRetriever: StringRetriever  
   
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     
     component<LoginComponent>(
-      APP_CONTEXT to applicationContext 
+      AppContext::class to applicationContext,
+      ApiKey::class to "hello, world!"
     ).inject(this)
   }
 }
 ```
 
-Runtime dependencies in a component are made available to all of the component's children too. In an Android application, providing the application context at the `Application` level will make it available to all Activities and Fragments that use child components.
+Runtime dependencies in a component are made available to all of the component's children too. 
+In an Android application, providing the application context at the `Application` level will make 
+it available to all Activities and Fragments that use child components.
 
 ---
 
