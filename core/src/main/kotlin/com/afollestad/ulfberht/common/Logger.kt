@@ -31,4 +31,8 @@ object Logger {
   fun log(message: String) {
     handler?.invoke(message)
   }
+
+  fun clear() {
+    handler = null
+  }
 }
