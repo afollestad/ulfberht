@@ -36,10 +36,10 @@ interface TestBaseComponent : BaseComponent {
 @Component(modules = [Module1_Module::class])
 interface ComponentParent
 
-class ComponentParent_Component(
-  override val parent: BaseComponent? = null
-) : ComponentParent, TestBaseComponent {
+class ComponentParent_Component() : ComponentParent, TestBaseComponent {
   override var isDestroyed: Boolean = false
+  override var parent: BaseComponent? = null
+  override val parentType: KClass<*>? = null
   override val scope: String = ""
   override val originalType: KClass<*> = ComponentParent::class
   override val children: MutableSet<BaseComponent> = mutableSetOf()
@@ -56,15 +56,14 @@ class ComponentParent_Component(
 
 @Component(
     scope = SCOPE_CHILD_1,
-    parent = ComponentParent::class,
     modules = [Module2_Module::class]
 )
 interface ComponentChild1
 
-class ComponentChild1_Component(
-  override val parent: BaseComponent? = null
-) : ComponentChild1, TestBaseComponent {
+class ComponentChild1_Component() : ComponentChild1, TestBaseComponent {
   override var isDestroyed: Boolean = false
+  override var parent: BaseComponent? = null
+  override val parentType: KClass<*>? = ComponentParent::class
   override val scope: String = SCOPE_CHILD_1
   override val originalType: KClass<*> = ComponentParent::class
   override val children: MutableSet<BaseComponent> = mutableSetOf()
@@ -79,16 +78,13 @@ class ComponentChild1_Component(
   ): Provider<T>? = error("Not implemented")
 }
 
-@Component(
-    parent = ComponentChild1::class,
-    modules = [Module3_Module::class]
-)
+@Component(modules = [Module3_Module::class])
 interface ComponentChild2
 
-class ComponentChild2_Component(
-  override val parent: BaseComponent? = null
-) : ComponentChild2, TestBaseComponent {
+class ComponentChild2_Component() : ComponentChild2, TestBaseComponent {
   override var isDestroyed: Boolean = false
+  override var parent: BaseComponent? = null
+  override val parentType: KClass<*>? = ComponentChild1::class
   override val scope: String = ""
   override val originalType: KClass<*> = ComponentParent::class
   override val children: MutableSet<BaseComponent> = mutableSetOf()

@@ -15,21 +15,10 @@
  */
 package com.afollestad.ulfberht.util
 
-import com.afollestad.ulfberht.common.BaseComponent
-import com.afollestad.ulfberht.annotation.Component
 import kotlin.reflect.KClass
 import kotlin.reflect.full.primaryConstructor
 
 internal fun String.asKClass(): KClass<*> = Class.forName(this).kotlin
 
-internal inline fun <reified T : Any> KClass<*>.newInstance(parent: BaseComponent?): T =
-  primaryConstructor!!.call(parent) as T
-
-internal fun KClass<*>.getParentType(): KClass<*>? {
-  val parent = (annotations.singleOrNull { it is Component } as? Component)?.parent
-  return if (parent == null || parent == Any::class) {
-    null
-  } else {
-    parent
-  }
-}
+internal inline fun <reified T : Any> KClass<*>.newInstance(): T =
+  primaryConstructor!!.call() as T

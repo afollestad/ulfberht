@@ -16,12 +16,8 @@
 package com.afollestad.ulfberhtsample.main
 
 import com.afollestad.ulfberht.annotation.Component
-import com.afollestad.ulfberhtsample.app.AppComponent
 
-@Component(
-    parent = AppComponent::class,
-    modules = [MainModule::class]
-)
+@Component(modules = [MainModule::class])
 interface MainComponent {
   fun inject(activity: MainActivity)
 }

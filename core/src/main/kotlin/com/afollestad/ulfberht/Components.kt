@@ -19,7 +19,6 @@ import com.afollestad.ulfberht.annotation.Component
 import com.afollestad.ulfberht.common.BaseComponent
 import com.afollestad.ulfberht.common.Logger
 import com.afollestad.ulfberht.util.asKClass
-import com.afollestad.ulfberht.util.getParentType
 import com.afollestad.ulfberht.util.newInstance
 import kotlin.reflect.KClass
 
@@ -31,7 +30,6 @@ import kotlin.reflect.KClass
 @PublishedApi
 internal object Components {
   val cache = mutableMapOf<String, BaseComponent>()
-  val parentTypeCache = mutableMapOf<String, KClass<*>>()
 
   /** Retrieves a cached component or creates a new instance of it. */
   @Suppress("UNCHECKED_CAST")
@@ -48,21 +46,25 @@ internal object Components {
       "$type is not a @Component annotated interface."
     }
 
-    // If we cannot, we need to create it. First, get its parent component, if there is one.
-    val componentParent: BaseComponent? = getParent(type)
-
     // Now instantiate the component, filling in the parent and scope.
     val newComponent = "${key}_Component".asKClass()
-        .newInstance<BaseComponent>(componentParent)
+        .newInstance<BaseComponent>()
         .also { cache[key] = it }
+    Logger.log("Instantiated fresh: $key")
+
     // Add the newly instantiated component to its parent's child list.
-    componentParent?.children?.add(newComponent)
+    getParent(newComponent)?.children?.add(newComponent)
+    if (newComponent.parent != null) {
+      Logger.log("Component $key has parent: ${newComponent.parent!!::class}")
+    } else {
+      Logger.log("Component $key has no parent.")
+    }
 
     // Get the scope, if any, and attach the component.
     val scope = Scopes.get(newComponent.scope)
     scope?.let { scope.addObserver(newComponent) }
+    Logger.log("Component $key scope: $scope")
 
-    Logger.log("Instantiated fresh: $key, parent: ${parentTypeCache[key]}, scope: $scope")
     return newComponent as T
   }
 
@@ -73,18 +75,14 @@ internal object Components {
   }
 
   /** Visible for testing - clears static caches for unit tests. */
-  fun resetForTests() {
-    cache.clear()
-    parentTypeCache.clear()
-  }
+  fun resetForTests() = cache.clear()
 
-  private fun getParent(type: KClass<*>): BaseComponent? {
-    val key = type.qualifiedName!!
-    return (parentTypeCache[key] ?: type.getParentType())
-        ?.let { parentType ->
-          parentTypeCache[key] = parentType
-          get(parentType) as BaseComponent
-        }
+  private fun getParent(forComponent: BaseComponent): BaseComponent? {
+    val parentType = forComponent.parentType
+    if (forComponent.parent == null && parentType != null) {
+      forComponent.parent = get(parentType) as BaseComponent
+    }
+    return forComponent.parent
   }
 }
 

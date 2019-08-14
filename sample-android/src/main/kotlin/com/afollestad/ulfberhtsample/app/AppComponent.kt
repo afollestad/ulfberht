@@ -16,8 +16,13 @@
 package com.afollestad.ulfberhtsample.app
 
 import com.afollestad.ulfberht.annotation.Component
+import com.afollestad.ulfberhtsample.login.LoginComponent
+import com.afollestad.ulfberhtsample.main.MainComponent
 
-@Component(modules = [AppProvideModule::class, AppBindModule::class])
+@Component(
+    children = [MainComponent::class, LoginComponent::class],
+    modules = [AppProvideModule::class, AppBindModule::class]
+)
 interface AppComponent {
   fun inject(app: App)
 }

@@ -30,7 +30,8 @@ import kotlin.reflect.KClass
 interface BaseComponent : ScopeObserver {
   val scope: String
   val originalType: KClass<*>
-  val parent: BaseComponent?
+  var parent: BaseComponent?
+  val parentType: KClass<*>?
   val children: MutableSet<BaseComponent>
   val modules: Set<BaseModule>
   var runtimeDependencies: Map<String?, Any>?

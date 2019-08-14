@@ -16,12 +16,8 @@
 package com.afollestad.ulfberhtsample.login
 
 import com.afollestad.ulfberht.annotation.Component
-import com.afollestad.ulfberhtsample.app.AppComponent
 
-@Component(
-    parent = AppComponent::class,
-    modules = [AuthModule::class]
-)
+@Component(modules = [AuthModule::class])
 interface LoginComponent {
   fun inject(activity: LoginActivity)
 }

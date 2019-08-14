@@ -30,6 +30,7 @@ import com.afollestad.ulfberht.util.Names.GET_RUNTIME_DEP_NAME
 import com.afollestad.ulfberht.util.Names.LIBRARY_PACKAGE
 import com.afollestad.ulfberht.util.Names.MODULES_LIST_NAME
 import com.afollestad.ulfberht.util.Names.PARENT_NAME
+import com.afollestad.ulfberht.util.Names.PARENT_TYPE_NAME
 import com.afollestad.ulfberht.util.Names.RUNTIME_DEPS_NAME
 import com.afollestad.ulfberht.util.Names.QUALIFIER
 import com.afollestad.ulfberht.util.Names.VIEW_MODEL_FACTORY_CREATE
@@ -77,7 +78,6 @@ import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier.OVERRIDE
 import com.squareup.kotlinpoet.MAP
 import com.squareup.kotlinpoet.MUTABLE_SET
-import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.SET
@@ -86,6 +86,7 @@ import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.TypeSpec.Builder
 import com.squareup.kotlinpoet.TypeVariableName
+import com.squareup.kotlinpoet.asClassName
 import com.squareup.kotlinpoet.asTypeName
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.Element
@@ -99,7 +100,8 @@ import javax.lang.model.element.TypeElement
  * @author Aidan Follestad (@afollestad)
  */
 internal class ComponentBuilder(
-  private val environment: ProcessingEnvironment
+  private val environment: ProcessingEnvironment,
+  private val parentTypeMap: MutableMap<TypeName, TypeName>
 ) {
   private lateinit var fullClassName: ClassName
 
@@ -121,8 +123,14 @@ internal class ComponentBuilder(
     val component = element.getAnnotationMirror<Component>()!!
     val scopeName = component.getParameter<String>(SCOPE_NAME) ?: ""
     val moduleTypes = component.getModulesTypes(environment)
-    val typeBuilder =
-      componentTypeBuilder(haveViewModels, fileName, fullClassName, scopeName, moduleTypes)
+    val typeBuilder = componentTypeBuilder(
+        haveViewModels = haveViewModels,
+        originalType = element.asType().asTypeElement().asClassName(),
+        fileName = fileName,
+        superInterface = fullClassName,
+        scope = scopeName,
+        moduleTypes = moduleTypes
+    )
 
     element.enclosedElements
         .filterMethods()
@@ -140,6 +148,7 @@ internal class ComponentBuilder(
 
   private fun componentTypeBuilder(
     haveViewModels: Boolean,
+    originalType: ClassName,
     fileName: String,
     superInterface: TypeName,
     scope: String,
@@ -150,12 +159,12 @@ internal class ComponentBuilder(
         .addSuperinterface(superInterface)
         .addSuperinterface(BASE_COMPONENT)
         .applyIf(haveViewModels) { addSuperinterface(VIEW_MODEL_FACTORY) }
-        .primaryConstructor(typeConstructor())
         .addProperties(
             listOf(
                 propertyScope(scope),
                 propertyOriginalType(superInterface),
                 propertyParent(),
+                propertyParentType(originalType),
                 propertyChildren(),
                 propertyModuleList(moduleTypes),
                 propertyRuntimeDependencies()
@@ -182,20 +191,23 @@ internal class ComponentBuilder(
 
   private fun propertyParent(): PropertySpec {
     return PropertySpec.builder(PARENT_NAME, NULLABLE_BASE_COMPONENT)
+        .mutable()
         .addModifiers(OVERRIDE)
-        .initializer(PARENT_NAME)
+        .initializer("null")
         .build()
   }
 
-  private fun parameterParent(): ParameterSpec {
-    return ParameterSpec.builder(PARENT_NAME, NULLABLE_BASE_COMPONENT)
-        .defaultValue("null")
-        .build()
-  }
-
-  private fun typeConstructor(): FunSpec {
-    return FunSpec.constructorBuilder()
-        .addParameter(parameterParent())
+  private fun propertyParentType(generatingComponent: ClassName): PropertySpec {
+    return PropertySpec.builder(PARENT_TYPE_NAME, KCLASS_OF_ANY.copy(nullable = true))
+        .addModifiers(OVERRIDE)
+        .apply {
+          val parentType = parentTypeMap[generatingComponent]
+          if (parentType != null) {
+            initializer("%T::class", parentType)
+          } else {
+            initializer("null")
+          }
+        }
         .build()
   }
 

@@ -223,10 +223,15 @@ internal object ProcessorUtil {
   }
 
   @Suppress("UNCHECKED_CAST")
-  fun AnnotationMirror.getListParameter(name: String): List<AnnotationValue> {
-    return elementValues.entries
-        .single { it.key.simpleName.toString() == name }
-        .value.value as List<AnnotationValue>
+  inline fun <reified T : Any> AnnotationMirror.getListParameter(
+    name: String
+  ): Sequence<T> {
+    val annotationValues = elementValues.entries
+        .singleOrNull { it.key.simpleName.toString() == name }
+        ?.value?.value as? List<AnnotationValue> ?: return emptySequence()
+    return annotationValues
+        .asSequence()
+        .map { it.value as T }
   }
 
   fun KClass<*>.asNullableTypeName(): TypeName {
@@ -242,9 +247,7 @@ internal object ProcessorUtil {
   }
 
   fun AnnotationMirror.getModulesTypes(env: ProcessingEnvironment): Sequence<TypeName> {
-    return getListParameter(MODULES_LIST_NAME)
-        .asSequence()
-        .map { it.value as TypeMirror }
+    return getListParameter<TypeMirror>(MODULES_LIST_NAME)
         .map {
           val element = it.asTypeElement()
           val pkg = element.getPackage(env)

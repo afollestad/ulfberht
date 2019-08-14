@@ -32,7 +32,7 @@ apparent when you deal with very large applications.
     4. [Qualifiers](#qualifiers)
 4. [Components](#components)
     1. [Basics](#basics)
-    2. [Parenting](#parenting)
+    2. [Child Components](#child-components)
     4. [Scoping](#scoping)
 5. [Putting Modules and Components to Use - Injection](#putting-modules-and-components-to-use---injection)
 6. [Runtime Dependencies](#runtime-dependencies)
@@ -111,16 +111,12 @@ so that they can be injected too...
 
 ```kotlin
 interface SomethingElse
-
 class SomethingElseImpl : SomethingElse
 
 interface Demo {
   fun myMethod()
 }
-
-class DemoImpl(
-  val somethingElse: SomethingElse
-) : Demo {
+class DemoImpl(val somethingElse: SomethingElse) : Demo {
   override fun myMethod() {
     ...
   }
@@ -151,13 +147,7 @@ a module which can use `@Provides` must be a `abstract class` rather than an `in
 
 ```kotlin
 class SomethingElse
-class Demo(
-  val somethingElse: SomethingElse
-) {
-  fun myMethod() {
-    ...
-  }
-}
+class Demo(val somethingElse: SomethingElse)
 
 @Module
 abstract class DemoModule {
@@ -174,16 +164,12 @@ as well. This could be a dependency provided in another module or even another c
 
 ```kotlin
 class SomethingElse
-class Demo(
-  val somethingElse: SomethingElse
-)
+class Demo(val somethingElse: SomethingElse)
  
 @Module
 interface DemoModule {
   @Provides 
-  fun demoClass(
-    somethingElse: SomethingElse
-  ): Demo {
+  fun demoClass(somethingElse: SomethingElse): Demo {
     return Demo(somethingElse)
   }
   
@@ -242,47 +228,53 @@ You could include multiple items in the array of the `@Component`'s `modules` pa
 You can also define a void (no return type) `inject` method for every class that the component 
 can inject into.
 
-### Parenting
+### Child Components
 
-A component can have a parent. A component's parent can also have a parent. As you chain 
-components together with parenting, you build a graph of object dependencies.
+In a real application, you'd probably have a hierarchy of components. Components operate at a 
+certain level - for an example you could have a component that's alive for the entire lifetime of 
+the application, while you would have more short-lived components that are alive when specific 
+screens of the application are. *You build this hierarchy by assigning child components.*
 
-<img src="https://github.com/afollestad/ulfberht/blob/master/art/component_diagram.png?raw=true" />
+<img src="https://github.com/afollestad/ulfberht/blob/master/art/plain_diagram.png?raw=true" />
 
-When you inject something at the bottom of the chain, you're able to inject things that are bound 
-or provided throughout the chain all the way up to the top.
+When you inject something at the bottom of the chain, you're able to inject things that are 
+bound/provided throughout the chain all the way up to the top.
 
-It's as simple as adding a parameter to your `@Component` annotations.
+---
+
+A component hierarchy is built by assigning *children* to components. The code below mimics the 
+diagram above.
 
 ```kotlin
-@Component(modules = [Module1::class, Module2::class])
+@Component(
+  children = [Component2::class, Component3::class],
+  modules = [Module1::class, Module2::class]
+)
 interface Component1
 
 @Component(
-  parent = Component1::class, 
+  children = [Component4::class, Component5::class],
   modules = [Module3::class, Module4::class]
 )
 interface Component2
 
 @Component(
-  parent = Component1::class,
+  children = [Component6::class, Component7::class],
   modules = [Module5::class, Module6::class]
 )
 interface Component3
 
-@Component(
-  parent = Component2::class,
-  modules = [Module7::class, Module8::class]
-)
-interface Component4 {
-  fun inject(target: SomeClass)
-}
+@Component(modules = [Module7::class, Module8::class])
+interface Component4
 
-@Component(
-  parent = Component3::class,
-  modules = [Module9::class, Module10::class]
-)
-interface Component5  
+@Component(modules = [Module9::class, Module10::class])
+interface Component5
+
+@Component(modules = [Module11::class, Module12::class])
+interface Component6
+
+@Component(modules = [Module13::class, Module14::class])
+interface Component7
 ```
 
 ### Scoping
@@ -343,23 +335,21 @@ const val PARENT_SCOPE = "i'm a parent"
 
 @Component(
   scope = PARENT_SCOPE, 
+  children = [ChildComponent::class],
   modules = [Module1::class]
 )
 interface ParentComponent
 
-@Component(
-  parent = ParentComponent::class,
-  modules = [Module2::class]
-)
+@Component(modules = [Module2::class])
 interface ChildComponent
 
 // This would destroy both components
 getScope(PARENT_SCOPE).exit()
 ```
 
-**Parent components will destroy all of their children (components and their modules) as well.** 
+<img src="https://github.com/afollestad/ulfberht/blob/master/art/destruction_diagram.png?raw=true" />
 
-<img src="https://github.com/afollestad/ulfberht/blob/master/art/component_destruction_diagram.png?raw=true" />
+**Parent components will destroy all of their children (components and their modules) as well.** 
 
 ---
 
@@ -368,6 +358,11 @@ getScope(PARENT_SCOPE).exit()
 To perform injection, you need to retrieve the component that's able to inject into your target.
 
 ```kotlin
+@Component(...)
+interface Component5 {
+  fun inject(activity: MyActivity)
+}
+
 class MyActivity : AppCompatActivity() {
   @Inject lateinit var someDependency: NeededClass
   
@@ -375,7 +370,7 @@ class MyActivity : AppCompatActivity() {
     super.onCreate(savedInstanceState)
     
     // Perform injection, `SomeComponent` would have an inject() method defined for `MyActivity`
-    component<SomeComponent>().inject(this)
+    component<Component5>().inject(this)
     
     // Use the injected dependency!
     someDependency.helloWorld()
@@ -383,7 +378,9 @@ class MyActivity : AppCompatActivity() {
 }
 ```
 
-This code assumes that one of the modules going up the graph from `SomeComponent` can supply 
+<img src="https://github.com/afollestad/ulfberht/blob/master/art/inject_diagram.png?raw=true" />
+
+This code assumes that one of the modules going up the graph from `Component5` can supply 
 `NeededClass` with a `@Binds` or `@Provides` method.
 
 ---
@@ -531,14 +528,16 @@ object ScopeNames {
   const val MAIN_SCOPE = "scope_main"
 }
 
-@Component(modules = [AppModule::class])
+@Component(
+  children = [LoginComponent::class, MainComponent::class],
+  modules = [AppModule::class]
+)
 interface AppComponent {
   fun inject(app: Application)
 }
 
 @Component(
   scope = ScopeNames.LOGIN_SCOPE,
-  parent = AppComponent::class,
   modules = [LoginModule::class]
 )
 interface LoginComponent {
@@ -547,7 +546,6 @@ interface LoginComponent {
 
 @Component(
   scope = ScopeNames.MAIN_SCOPE,
-  parent = AppComponent::class,
   modules = [MainModule::class]
 )
 interface MainComponent {

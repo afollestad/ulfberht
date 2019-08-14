@@ -24,7 +24,6 @@ class ComponentsTest {
 
   @Test fun get() {
     assertThat(Components.cache).isEmpty()
-    assertThat(Components.parentTypeCache).isEmpty()
 
     val component1 = component<ComponentParent>() as BaseComponent
     assertThat(component1.modules.single())
@@ -33,7 +32,6 @@ class ComponentsTest {
     val cacheEntry = Components.cache.entries.single()
     assertThat(cacheEntry.key).isEqualTo(ComponentParent::class.qualifiedName)
     assertThat(cacheEntry.value).isInstanceOf<ComponentParent>()
-    assertThat(Components.parentTypeCache).isEmpty()
 
     val component2 = component<ComponentParent>() as BaseComponent
     assertThat(component2).isSameInstanceAs(component1)
@@ -57,12 +55,6 @@ class ComponentsTest {
     assertThat(parentOfParent).isInstanceOf<ComponentParent>()
     assertThat(parentOfParent!!.modules.single())
         .isInstanceOf<Module1_Module>()
-
-    assertThat(Components.parentTypeCache.size).isEqualTo(2)
-    assertThat(Components.parentTypeCache[ComponentChild2::class.qualifiedName])
-        .isEqualTo(ComponentChild1::class)
-    assertThat(Components.parentTypeCache[ComponentChild1::class.qualifiedName])
-        .isEqualTo(ComponentParent::class)
   }
 
   @Test fun remove() {
