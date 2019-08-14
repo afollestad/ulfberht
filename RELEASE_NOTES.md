@@ -1,5 +1,5 @@
-0.4.0
+0.5.0
 
-* Android `ViewModel` injection!
-* You can inject `Provider<>`'s of types.
-* Bug fixes, code cleanup, generated code cleanup, etc.
+* Instead of setting `parent` in the `Component` annotation, you assign a component `children`. See 
+the updated README.
+* Internal cleanup.
