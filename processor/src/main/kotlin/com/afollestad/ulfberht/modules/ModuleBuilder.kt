@@ -29,6 +29,7 @@ import com.afollestad.ulfberht.util.Names.FACTORY_EXTENSION_NAME
 import com.afollestad.ulfberht.util.Names.GENERIC_ARGS
 import com.afollestad.ulfberht.util.Names.GET_PROVIDER_NAME
 import com.afollestad.ulfberht.util.Names.IS_SUBCLASS_EXTENSION_NAME
+import com.afollestad.ulfberht.util.Names.LIBRARY_COMMON_PACKAGE
 import com.afollestad.ulfberht.util.Names.LIBRARY_PACKAGE
 import com.afollestad.ulfberht.util.Names.MODULE_NAME_SUFFIX
 import com.afollestad.ulfberht.util.Names.QUALIFIER
@@ -122,8 +123,8 @@ internal class ModuleBuilder(
         .build()
     val fileSpec = FileSpec.builder(pkg, fileName)
         .addImport(LIBRARY_PACKAGE, IS_SUBCLASS_EXTENSION_NAME)
-        .applyIf(haveNonSingletons) { addImport(LIBRARY_PACKAGE, FACTORY_EXTENSION_NAME) }
-        .applyIf(haveSingletons) { addImport(LIBRARY_PACKAGE, SINGLETON_PROVIDER_EXTENSION_NAME) }
+        .applyIf(haveNonSingletons) { addImport(LIBRARY_COMMON_PACKAGE, FACTORY_EXTENSION_NAME) }
+        .applyIf(haveSingletons) { addImport(LIBRARY_COMMON_PACKAGE, SINGLETON_PROVIDER_EXTENSION_NAME) }
         .addType(typeSpec)
         .build()
     fileSpec.writeTo(environment.filer)

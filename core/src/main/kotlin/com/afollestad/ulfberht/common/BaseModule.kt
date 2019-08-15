@@ -56,26 +56,6 @@ interface BaseModule {
     cachedProviders.forEach { it.value.destroy() }
     cachedProviders.clear()
   }
-
-  /** A [Provider] that returns a new instance for every call to [get]. */
-  class FactoryProvider<T>(private val creator: () -> T) : Provider<T> {
-    override fun get(): T = creator()
-
-    override fun destroy() = Unit
-  }
-
-  /** A [Provider] that always returns the same instance with every call to [get]. */
-  class SingletonProvider<T>(private val creator: () -> T) : Provider<T> {
-    private var value: T? = null
-
-    override fun get(): T {
-      return value ?: creator().also { value = it }
-    }
-
-    override fun destroy() {
-      value = null
-    }
-  }
 }
 
 private fun missingProviderError(

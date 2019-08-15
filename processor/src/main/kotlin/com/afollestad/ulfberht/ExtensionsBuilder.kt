@@ -15,28 +15,15 @@
  */
 package com.afollestad.ulfberht
 
-import com.afollestad.ulfberht.util.Annotations.SUPPRESS_UNCHECKED_CAST
-import com.afollestad.ulfberht.util.Names.CACHED_PROVIDERS_NAME
 import com.afollestad.ulfberht.util.Names.CLASS_HEADER
 import com.afollestad.ulfberht.util.Names.IS_SUBCLASS_EXTENSION_NAME
 import com.afollestad.ulfberht.util.Names.LIBRARY_PACKAGE
-import com.afollestad.ulfberht.util.Names.FACTORY_EXTENSION_NAME
-import com.afollestad.ulfberht.util.Names.SINGLETON_PROVIDER_EXTENSION_NAME
-import com.afollestad.ulfberht.util.Types.BASE_MODULE
 import com.afollestad.ulfberht.util.Types.KCLASS_OF_ANY
-import com.afollestad.ulfberht.util.Types.PROVIDER_OF_T
-import com.afollestad.ulfberht.util.Types.REIFIED_TYPE_VARIABLE_T
-import com.afollestad.ulfberht.util.Types.SINGLETON_PROVIDER
 import com.afollestad.ulfberht.util.Types.TYPE_VARIABLE_T
-import com.afollestad.ulfberht.util.Types.UNSCOPED_PROVIDER
 import com.squareup.kotlinpoet.BOOLEAN
-import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
-import com.squareup.kotlinpoet.KModifier.INLINE
 import com.squareup.kotlinpoet.KModifier.INTERNAL
-import com.squareup.kotlinpoet.KModifier.NOINLINE
-import com.squareup.kotlinpoet.LambdaTypeName
 import javax.annotation.processing.ProcessingEnvironment
 
 /**
@@ -51,8 +38,6 @@ internal class ExtensionsBuilder(
   fun generate() {
     val fileSpec = FileSpec.builder(LIBRARY_PACKAGE, "_ProcessorExtensions")
         .addFunction(isSubClassFunction())
-        .addFunction(factoryProviderFunction())
-        .addFunction(singletonProviderFunction())
         .build()
     fileSpec.writeTo(environment.filer)
   }
@@ -65,45 +50,6 @@ internal class ExtensionsBuilder(
         .addModifiers(INTERNAL)
         .addCode("return ofClass.java.isAssignableFrom(this.java)\n", TYPE_VARIABLE_T)
         .returns(BOOLEAN)
-        .build()
-  }
-
-  private fun factoryProviderFunction(): FunSpec {
-    val parameterType = LambdaTypeName.get(returnType = TYPE_VARIABLE_T)
-    return FunSpec.builder(FACTORY_EXTENSION_NAME)
-        .addKdoc(CLASS_HEADER)
-        .addModifiers(INTERNAL)
-        .addTypeVariable(TYPE_VARIABLE_T)
-        .addParameter("block", parameterType)
-        .returns(PROVIDER_OF_T)
-        .addCode("return %T(block)\n", UNSCOPED_PROVIDER)
-        .build()
-  }
-
-  private fun singletonProviderFunction(): FunSpec {
-    val parameterType = LambdaTypeName.get(returnType = REIFIED_TYPE_VARIABLE_T)
-    return FunSpec.builder(SINGLETON_PROVIDER_EXTENSION_NAME)
-        .addKdoc(CLASS_HEADER)
-        .receiver(BASE_MODULE)
-        .addAnnotation(SUPPRESS_UNCHECKED_CAST)
-        .addModifiers(INLINE, INTERNAL)
-        .addTypeVariable(REIFIED_TYPE_VARIABLE_T)
-        .addParameter("block", parameterType, NOINLINE)
-        .returns(PROVIDER_OF_T)
-        .addCode(
-            CodeBlock.of(
-                """
-                val key: String = %T::class.qualifiedName!!
-                if ($CACHED_PROVIDERS_NAME.containsKey(key)) {
-                  return $CACHED_PROVIDERS_NAME[key] as %T
-                }
-                return %T(block).also { $CACHED_PROVIDERS_NAME[key] = it }
-                """.trimIndent() + "\n",
-                REIFIED_TYPE_VARIABLE_T,
-                PROVIDER_OF_T,
-                SINGLETON_PROVIDER
-            )
-        )
         .build()
   }
 }

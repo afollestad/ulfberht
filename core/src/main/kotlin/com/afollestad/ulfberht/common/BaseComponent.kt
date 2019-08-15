@@ -57,7 +57,27 @@ interface BaseComponent : ScopeObserver {
     genericArgs: Set<KClass<*>> = emptySet(),
     qualifier: String? = null,
     calledBy: BaseComponent? = null
-  ): Provider<T>?
+  ): Provider<T>? {
+    if (calledBy === this) return null
+    modules.forEach { module ->
+      module.getProvider<T>(
+          wantedType = wantedType,
+          genericArgs = genericArgs,
+          qualifier = qualifier,
+          calledBy = calledBy ?: this
+      )?.let { return it }
+    }
+
+    if (parent != null && calledBy === parent) return null
+    val runtimeProvider = getRuntimeDependency<T>(qualifier)
+        ?.run { factory { this } }
+    return runtimeProvider ?: parent?.getProvider(
+        wantedType = wantedType,
+        genericArgs = genericArgs,
+        qualifier = qualifier,
+        calledBy = calledBy
+    )
+  }
 
   @Suppress("UNCHECKED_CAST")
   fun <T : Any> getRuntimeDependency(qualifier: String?): T? {

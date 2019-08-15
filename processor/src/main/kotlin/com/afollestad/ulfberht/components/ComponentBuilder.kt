@@ -17,24 +17,16 @@ package com.afollestad.ulfberht.components
 
 import com.afollestad.ulfberht.annotation.Component
 import com.afollestad.ulfberht.annotation.ScopeOwner
-import com.afollestad.ulfberht.util.Annotations.SUPPRESS_UNCHECKED_CAST
-import com.afollestad.ulfberht.util.Names.CALLED_BY
 import com.afollestad.ulfberht.util.Names.CHILDREN_NAME
 import com.afollestad.ulfberht.util.Names.CLASS_HEADER
 import com.afollestad.ulfberht.util.Names.COMPONENT_NAME_SUFFIX
-import com.afollestad.ulfberht.util.Names.FACTORY_EXTENSION_NAME
-import com.afollestad.ulfberht.util.Names.GENERIC_ARGS
 import com.afollestad.ulfberht.util.Names.GET_NAME
-import com.afollestad.ulfberht.util.Names.GET_PROVIDER_NAME
-import com.afollestad.ulfberht.util.Names.GET_RUNTIME_DEP_NAME
-import com.afollestad.ulfberht.util.Names.LIBRARY_PACKAGE
 import com.afollestad.ulfberht.util.Names.MODULES_LIST_NAME
 import com.afollestad.ulfberht.util.Names.PARENT_NAME
 import com.afollestad.ulfberht.util.Names.PARENT_TYPE_NAME
 import com.afollestad.ulfberht.util.Names.RUNTIME_DEPS_NAME
 import com.afollestad.ulfberht.util.Names.QUALIFIER
 import com.afollestad.ulfberht.util.Names.VIEW_MODEL_FACTORY_CREATE
-import com.afollestad.ulfberht.util.Names.WANTED_TYPE
 import com.afollestad.ulfberht.util.ProcessorUtil.asFileName
 import com.afollestad.ulfberht.util.ProcessorUtil.asTypeElement
 import com.afollestad.ulfberht.util.ProcessorUtil.error
@@ -63,10 +55,7 @@ import com.afollestad.ulfberht.util.Types.LIFECYCLE_OBSERVER
 import com.afollestad.ulfberht.util.Types.LIFECYCLE_OWNER
 import com.afollestad.ulfberht.util.Types.LOGGER
 import com.afollestad.ulfberht.util.Types.NULLABLE_BASE_COMPONENT
-import com.afollestad.ulfberht.util.Types.NULLABLE_KOTLIN_STRING
 import com.afollestad.ulfberht.util.Types.ON_LIFECYCLE_EVENT
-import com.afollestad.ulfberht.util.Types.PROVIDER_OF_T_NULLABLE
-import com.afollestad.ulfberht.util.Types.TYPE_VARIABLE_T
 import com.afollestad.ulfberht.util.Types.VIEW_MODEL
 import com.afollestad.ulfberht.util.Types.VIEW_MODEL_FACTORY
 import com.afollestad.ulfberht.util.Types.VIEW_MODEL_PROVIDERS
@@ -140,7 +129,6 @@ internal class ComponentBuilder(
         .forEach { typeBuilder.addFunction(it!!) }
 
     val fileSpec = FileSpec.builder(pkg, fileName)
-        .addImport(LIBRARY_PACKAGE, FACTORY_EXTENSION_NAME)
         .addType(typeBuilder.build())
         .build()
     fileSpec.writeTo(environment.filer)
@@ -170,7 +158,6 @@ internal class ComponentBuilder(
                 propertyRuntimeDependencies()
             )
         )
-        .addFunction(getProviderFunction(moduleTypes))
         .applyIf(haveViewModels) { addFunction(viewModelFactoryCreateFunction()) }
   }
 
@@ -251,56 +238,6 @@ internal class ComponentBuilder(
     return PropertySpec.builder(RUNTIME_DEPS_NAME, propertyType, OVERRIDE)
         .mutable()
         .initializer("null")
-        .build()
-  }
-
-  private fun getProviderFunction(moduleTypes: Sequence<TypeName>): FunSpec {
-    val code = CodeBlock.builder()
-    if (moduleTypes.firstOrNull() != null) {
-      code.add(
-          CodeBlock.of(
-              """
-              if ($CALLED_BY === this) return null
-              $MODULES_LIST_NAME.forEach { module ->
-                module.$GET_PROVIDER_NAME<%T>(
-                   $WANTED_TYPE = $WANTED_TYPE, 
-                   $GENERIC_ARGS = $GENERIC_ARGS,
-                   $QUALIFIER = $QUALIFIER,
-                   $CALLED_BY = $CALLED_BY ?: this
-                )?.let { return it }
-              }
-              """.trimIndent() + "\n\n",
-              TYPE_VARIABLE_T
-          )
-      )
-    }
-    code.add(
-        CodeBlock.of(
-            """
-            if ($PARENT_NAME != null && $CALLED_BY === $PARENT_NAME) return null
-            val runtimeProvider = $GET_RUNTIME_DEP_NAME<%T>($QUALIFIER)
-                ?.run { $FACTORY_EXTENSION_NAME { this } }
-            return runtimeProvider ?: $PARENT_NAME?.$GET_PROVIDER_NAME(
-                $WANTED_TYPE = $WANTED_TYPE,
-                $GENERIC_ARGS = $GENERIC_ARGS, 
-                $QUALIFIER = $QUALIFIER, 
-                $CALLED_BY = $CALLED_BY
-            )
-            """.trimIndent() + "\n",
-            TYPE_VARIABLE_T
-        )
-    )
-
-    return FunSpec.builder(GET_PROVIDER_NAME)
-        .addAnnotation(SUPPRESS_UNCHECKED_CAST)
-        .addParameter(WANTED_TYPE, KCLASS_OF_ANY)
-        .addParameter(GENERIC_ARGS, SET.parameterizedBy(KCLASS_OF_ANY))
-        .addParameter(QUALIFIER, NULLABLE_KOTLIN_STRING)
-        .addParameter(CALLED_BY, NULLABLE_BASE_COMPONENT)
-        .addModifiers(OVERRIDE)
-        .addTypeVariable(TYPE_VARIABLE_T)
-        .returns(PROVIDER_OF_T_NULLABLE)
-        .addCode(code.build())
         .build()
   }
 
