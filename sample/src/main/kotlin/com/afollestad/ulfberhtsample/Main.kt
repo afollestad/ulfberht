@@ -19,6 +19,7 @@ import com.afollestad.ulfberht.Provider
 import com.afollestad.ulfberht.annotation.Binds
 import com.afollestad.ulfberht.annotation.Component
 import com.afollestad.ulfberht.annotation.Inject
+import com.afollestad.ulfberht.annotation.IntoSet
 import com.afollestad.ulfberht.annotation.Module
 import com.afollestad.ulfberht.annotation.Provides
 import com.afollestad.ulfberht.annotation.Qualifier
@@ -50,6 +51,10 @@ abstract class MyModule2 {
   @Provides fun one(one: OneImpl): SomeClass<String, Boolean> = SomeClass("test", true)
 
   @Provides fun two(two: TwoImpl): SomeClass<Int, Long> = SomeClass(6, 10L)
+
+  @Provides @IntoSet fun aString1(): String = "Hello"
+
+  @Provides @IntoSet fun aString2(): String = "World"
 }
 
 interface One {
@@ -80,11 +85,13 @@ class Main {
   @Inject lateinit var someClass2: SomeClass<Int, Long>
   @Inject @field:Message lateinit var messageProvider: Provider<String>
   @Inject lateinit var someClassProvider: Provider<SomeClass<String, Boolean>>
+  @Inject lateinit var aStringSet: Set<String>
 
   fun doSomething() {
     one.doSomething()
     println(someClass1.toString())
     println(someClass2.toString())
+    println("Strings: ${aStringSet.joinToString(prefix = "[", postfix = "]")}")
   }
 
   init {

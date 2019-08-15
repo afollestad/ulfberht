@@ -71,8 +71,9 @@ internal object ProcessorUtil {
   private fun Element.getQualifier(): String? {
     return annotationMirrors.singleOrNull { ann ->
       ann.annotationType.asElement()
-        .hasAnnotationMirror<Qualifier>()
-    }?.toString()
+          .hasAnnotationMirror<Qualifier>()
+    }
+        ?.toString()
   }
 
   fun TypeMirror.asTypeAndArgs(
@@ -343,6 +344,9 @@ internal object ProcessorUtil {
       genericTypes = typeArguments
           .map { arg -> arg.correctTypeName(env) }
           .toTypedArray()
+      env.warn("Generic arguments for $this: ${genericTypes.joinToString()}")
+    } else {
+      env.warn("Generic arguments for $this: (NONE)")
     }
     return when (baseType.toString()) {
       "java.lang.String" -> STRING
@@ -354,13 +358,13 @@ internal object ProcessorUtil {
       "java.lang.Boolean" -> BOOLEAN
       "java.util.Set",
       "java.util.AbstractSet",
-      "java.util.HashSet" -> SET.parameterizedBy(*genericTypes)
+      "java.util.HashSet" -> SET.maybeParameterizedBy(genericTypes)
       "java.util.Map",
       "java.util.AbstractMap",
-      "java.util.HashMap" -> MAP.parameterizedBy(*genericTypes)
+      "java.util.HashMap" -> MAP.maybeParameterizedBy(genericTypes)
       "java.util.List",
       "java.util.AbstractList",
-      "java.util.ArrayList" -> LIST.parameterizedBy(*genericTypes)
+      "java.util.ArrayList" -> LIST.maybeParameterizedBy(genericTypes)
       else -> if (genericTypes.isNotEmpty()) {
         baseType.asTypeElement()
             .asClassName()
@@ -369,6 +373,10 @@ internal object ProcessorUtil {
         asTypeName()
       }
     }
+  }
+
+  private fun ClassName.maybeParameterizedBy(args: Array<out TypeName>): TypeName {
+    return if (args.isEmpty()) this else parameterizedBy(*args)
   }
 
   private fun Element.isNullable(): Boolean {
