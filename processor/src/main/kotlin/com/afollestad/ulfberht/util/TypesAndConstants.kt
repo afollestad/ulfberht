@@ -19,6 +19,7 @@ import com.afollestad.ulfberht.Provider
 import com.afollestad.ulfberht.common.BaseComponent
 import com.afollestad.ulfberht.common.BaseModule
 import com.afollestad.ulfberht.common.Logger
+import com.afollestad.ulfberht.util.Names.LIBRARY_PACKAGE
 import com.afollestad.ulfberht.util.ProcessorUtil.asNullableTypeName
 import com.squareup.kotlinpoet.ANY
 import com.squareup.kotlinpoet.AnnotationSpec
@@ -85,7 +86,7 @@ internal object Types {
   private const val LIFECYCLE_PKG = "androidx.lifecycle"
   val LIFECYCLE_OWNER = ClassName(LIFECYCLE_PKG, "LifecycleOwner")
   val LIFECYCLE_OBSERVER = ClassName(LIFECYCLE_PKG, "LifecycleObserver")
-  val GET_SCOPE_METHOD = ClassName("com.afollestad.ulfberht", "getScope")
+  val GET_SCOPE_METHOD = ClassName(LIBRARY_PACKAGE, "getScope")
   val ON_LIFECYCLE_EVENT = ClassName(LIFECYCLE_PKG, "OnLifecycleEvent")
   val LIFECYCLE_EVENT_ON_DESTROY = ClassName("$LIFECYCLE_PKG.Lifecycle.Event", "ON_DESTROY")
 
