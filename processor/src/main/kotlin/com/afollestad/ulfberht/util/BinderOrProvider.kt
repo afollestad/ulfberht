@@ -81,7 +81,7 @@ internal fun Element.getBindsAndProvidesMethods(
             env.error("$method: @Provides methods can only be used in an abstract class.")
             return@map null
           }
-          method.asProvidesMethod(env)
+          method.asProvidesMethod(env, dependencyGraph)
         }
       }
       .filterNotNull()
@@ -129,16 +129,20 @@ private fun ExecutableElement.asBindsMethod(
 }
 
 private fun ExecutableElement.asProvidesMethod(
-  env: ProcessingEnvironment
+  env: ProcessingEnvironment,
+  dependencyGraph: DependencyGraph
 ): BinderOrProvider? {
   val returnTypeAndArgs = returnTypeAsTypeAndArgs(env)
   val methodName = simpleName.toString()
-  /* TODO?
-  dependencyGraph.bind(
-      concrete = parameterType.asTypeAndArgs(env, qualifier = qualifier),
-      to = returnTypeAndArgs
-  )
-  */
+  val fillArgumentTypes = getMethodParamsTypeAndArgs(env)
+
+  fillArgumentTypes.forEach {
+    dependencyGraph.bind(
+        concrete = returnTypeAndArgs,
+        to = it
+    )
+  }
+
   return BinderOrProvider(
       mode = PROVIDE,
       methodName = methodName,
@@ -146,6 +150,6 @@ private fun ExecutableElement.asProvidesMethod(
       providedType = returnTypeAndArgs,
       concreteType = returnTypeAndArgs,
       isSingleton = hasAnnotationMirror<Singleton>(),
-      fillArgumentTypes = getMethodParamsTypeAndArgs(env)
+      fillArgumentTypes = fillArgumentTypes
   )
 }
