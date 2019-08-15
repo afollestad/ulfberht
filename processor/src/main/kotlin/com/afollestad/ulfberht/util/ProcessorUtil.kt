@@ -311,19 +311,19 @@ internal object ProcessorUtil {
     return kind == VOID
   }
 
-  fun TypeMirror?.isViewModel(env: ProcessingEnvironment): Boolean {
+  val AnnotationMirror?.name: String?
+    get() {
+      val qualifier: String = this?.getParameter("name") ?: return null
+      return if (qualifier.isEmpty()) null else qualifier
+    }
+
+  private fun TypeMirror?.isViewModel(env: ProcessingEnvironment): Boolean {
     if (this == null) {
       return false
     }
     return toString() == VIEW_MODEL.toString() ||
         asTypeElement().getSuperClass(env).isViewModel(env)
   }
-
-  val AnnotationMirror?.name: String?
-    get() {
-      val qualifier: String = this?.getParameter("name") ?: return null
-      return if (qualifier.isEmpty()) null else qualifier
-    }
 
   private fun Element.getSuperClass(env: ProcessingEnvironment): TypeMirror? {
     return env.typeUtils.directSupertypes(this.asType())
@@ -344,9 +344,6 @@ internal object ProcessorUtil {
       genericTypes = typeArguments
           .map { arg -> arg.correctTypeName(env) }
           .toTypedArray()
-      env.warn("Generic arguments for $this: ${genericTypes.joinToString()}")
-    } else {
-      env.warn("Generic arguments for $this: (NONE)")
     }
     return when (baseType.toString()) {
       "java.lang.String" -> STRING

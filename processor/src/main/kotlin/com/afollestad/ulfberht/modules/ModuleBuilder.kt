@@ -15,11 +15,11 @@
  */
 package com.afollestad.ulfberht.modules
 
-import com.afollestad.ulfberht.annotation.Binds
 import com.afollestad.ulfberht.annotation.Module
-import com.afollestad.ulfberht.annotation.Provides
-import com.afollestad.ulfberht.annotation.Singleton
 import com.afollestad.ulfberht.util.Annotations.SUPPRESS_UNCHECKED_CAST
+import com.afollestad.ulfberht.util.BindOrProvide.BIND
+import com.afollestad.ulfberht.util.BindOrProvide.PROVIDE
+import com.afollestad.ulfberht.util.BinderOrProvider
 import com.afollestad.ulfberht.util.DependencyGraph
 import com.afollestad.ulfberht.util.Names.CACHED_PROVIDERS_NAME
 import com.afollestad.ulfberht.util.Names.CALLED_BY
@@ -37,19 +37,10 @@ import com.afollestad.ulfberht.util.Names.SINGLETON_PROVIDER_EXTENSION_NAME
 import com.afollestad.ulfberht.util.Names.WANTED_TYPE
 import com.afollestad.ulfberht.util.ProcessorUtil.applyIf
 import com.afollestad.ulfberht.util.ProcessorUtil.asFileName
-import com.afollestad.ulfberht.util.ProcessorUtil.asTypeElement
 import com.afollestad.ulfberht.util.ProcessorUtil.error
-import com.afollestad.ulfberht.util.ProcessorUtil.filterMethods
-import com.afollestad.ulfberht.util.ProcessorUtil.getAnnotationMirror
-import com.afollestad.ulfberht.util.ProcessorUtil.getConstructorParamsTypesAndArgs
 import com.afollestad.ulfberht.util.ProcessorUtil.getFullClassName
-import com.afollestad.ulfberht.util.ProcessorUtil.getMethodParamsTypeAndArgs
 import com.afollestad.ulfberht.util.ProcessorUtil.getPackage
-import com.afollestad.ulfberht.util.ProcessorUtil.hasAnnotationMirror
 import com.afollestad.ulfberht.util.ProcessorUtil.isAbstractClass
-import com.afollestad.ulfberht.util.ProcessorUtil.returnTypeAsTypeAndArgs
-import com.afollestad.ulfberht.util.ProcessorUtil.asTypeAndArgs
-import com.afollestad.ulfberht.util.ProcessorUtil.isViewModel
 import com.afollestad.ulfberht.util.ProcessorUtil.warn
 import com.afollestad.ulfberht.util.TypeAndArgs
 import com.afollestad.ulfberht.util.Types.BASE_COMPONENT
@@ -62,6 +53,7 @@ import com.afollestad.ulfberht.util.Types.PROVIDER_OF_ANY
 import com.afollestad.ulfberht.util.Types.PROVIDER_OF_T
 import com.afollestad.ulfberht.util.Types.PROVIDER_OF_T_NULLABLE
 import com.afollestad.ulfberht.util.Types.TYPE_VARIABLE_T
+import com.afollestad.ulfberht.util.getBindsAndProvidesMethods
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec
@@ -77,7 +69,6 @@ import com.squareup.kotlinpoet.TypeSpec
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.Element
 import javax.lang.model.element.ElementKind.INTERFACE
-import javax.lang.model.element.ExecutableElement
 
 /**
  * Generates module implementations from [Module] annotated interfaces and  abstract classes.
@@ -107,16 +98,19 @@ internal class ModuleBuilder(
 
     val pkg = element.getPackage(environment)
         .also { fullClassName = element.getFullClassName(environment, it) }
-
     val fileName = fullClassName.asFileName(MODULE_NAME_SUFFIX)
     val typeBuilder = moduleTypeBuilder(fileName, element.isAbstractClass(), fullClassName)
-    val providedTypeMethodNameMap = mutableMapOf<TypeAndArgs, MethodNameAndQualifier>()
+    val providedTypeMethodNameMap = mutableMapOf<TypeAndArgs, BinderOrProvider>()
 
-    element.enclosedElements
-        .filterMethods()
-        .map { processBindsOrProvidesMethod(element, it, providedTypeMethodNameMap) }
-        .filter { it != null }
-        .forEach { typeBuilder.addFunction(it!!) }
+    element.getBindsAndProvidesMethods(environment, dependencyGraph)
+        .map {
+          when (it.mode) {
+            BIND -> addBindsFunction(it, providedTypeMethodNameMap)
+            PROVIDE -> addProvidesFunction(it, providedTypeMethodNameMap)
+          }
+        }
+        .filterNotNull()
+        .forEach { typeBuilder.addFunction(it) }
 
     val typeSpec = typeBuilder
         .addFunction(getProviderFunction(providedTypeMethodNameMap))
@@ -124,32 +118,12 @@ internal class ModuleBuilder(
     val fileSpec = FileSpec.builder(pkg, fileName)
         .addImport(LIBRARY_PACKAGE, IS_SUBCLASS_EXTENSION_NAME)
         .applyIf(haveNonSingletons) { addImport(LIBRARY_COMMON_PACKAGE, FACTORY_EXTENSION_NAME) }
-        .applyIf(haveSingletons) { addImport(LIBRARY_COMMON_PACKAGE, SINGLETON_PROVIDER_EXTENSION_NAME) }
+        .applyIf(haveSingletons) {
+          addImport(LIBRARY_COMMON_PACKAGE, SINGLETON_PROVIDER_EXTENSION_NAME)
+        }
         .addType(typeSpec)
         .build()
     fileSpec.writeTo(environment.filer)
-  }
-
-  private fun processBindsOrProvidesMethod(
-    element: Element,
-    method: ExecutableElement,
-    providedTypeMethodNameMap: MutableMap<TypeAndArgs, MethodNameAndQualifier>
-  ): FunSpec? {
-    return when {
-      method.getAnnotationMirror<Binds>() != null -> if (element.kind != INTERFACE) {
-        environment.error("$method: @Binds methods can only be used in an interface.")
-        null
-      } else {
-        bindsFunction(method, providedTypeMethodNameMap)
-      }
-      method.getAnnotationMirror<Provides>() != null -> if (!element.isAbstractClass()) {
-        environment.error("$method: @Provides methods can only be used in an abstract class.")
-        null
-      } else {
-        providesFunction(method, providedTypeMethodNameMap)
-      }
-      else -> null
-    }
   }
 
   private fun moduleTypeBuilder(
@@ -186,13 +160,16 @@ internal class ModuleBuilder(
   }
 
   private fun getProviderFunction(
-    providedTypeMethodNameMap: MutableMap<TypeAndArgs, MethodNameAndQualifier>
+    providedTypeMethodNameMap: MutableMap<TypeAndArgs, BinderOrProvider>
   ): FunSpec {
     val code = CodeBlock.builder()
         .add("return when {\n")
 
-    for ((typeAndArgs, getterAndQualifier) in providedTypeMethodNameMap) {
-      val (getterName, qualifier) = getterAndQualifier
+    for ((typeAndArgs, binderOrProvider) in providedTypeMethodNameMap) {
+      val getterName = binderOrProvider.getterName
+      check(getterName.isNotBlank())
+      val qualifier = binderOrProvider.qualifier
+
       code.add("  $WANTED_TYPE.$IS_SUBCLASS_EXTENSION_NAME(%T::class)", typeAndArgs.erasedType)
       code.applyIf(typeAndArgs.hasGenericArgs) {
         add(" && $GENERIC_ARGS == setOf(")
@@ -234,104 +211,65 @@ internal class ModuleBuilder(
         .build()
   }
 
-  private fun bindsFunction(
-    method: ExecutableElement,
-    providedTypeMethodNameMap: MutableMap<TypeAndArgs, MethodNameAndQualifier>
+  private fun addBindsFunction(
+    method: BinderOrProvider,
+    providedTypeMethodNameMap: MutableMap<TypeAndArgs, BinderOrProvider>
   ): FunSpec? {
-    if (method.parameters.size != 1) {
-      environment.error("$method: @Binds methods must have a single parameter.")
-      return null
-    }
-    val parameterType = method.parameters.single()
-        .asType()
-
-    if (!environment.typeUtils.isSubtype(parameterType, method.returnType)) {
-      environment.error(
-          "@Binds method ${method.simpleName}() parameter of type " +
-              "$parameterType must be a subclass of ${method.returnType}"
-      )
-      return null
-    }
-
-    val returnTypeAndArgs = method.returnTypeAsTypeAndArgs(environment)
-    val methodName = method.simpleName.toString()
-    val providerMethodName = method.providerGetName()
-
-    val qualifier = returnTypeAndArgs.qualifier
-    dependencyGraph.bind(
-        concrete = parameterType.asTypeAndArgs(environment, qualifier = qualifier),
-        to = returnTypeAndArgs
-    )
-
-    providedTypeMethodNameMap[returnTypeAndArgs] =
-      MethodNameAndQualifier(
-          name = methodName,
-          qualifier = qualifier
-      )
-
-    val fieldTypeConstructorParams = parameterType
-        .asTypeElement()
-        .getConstructorParamsTypesAndArgs(environment)
-
+    providedTypeMethodNameMap[method.providedType] = method
     val code = CodeBlock.builder()
         .apply {
-          val paramBreak = fieldTypeConstructorParams.lineBreak
-          val factoryNamePrefix = if (fieldTypeConstructorParams.count() > 1) "  " else " "
-
-          add("return %N {$paramBreak$factoryNamePrefix%T(", providerMethodName, parameterType)
-          if (!construct(fieldTypeConstructorParams, returnTypeAndArgs)) {
+          val fillArgumentTypes = method.fillArgumentTypes
+          val paramBreak = fillArgumentTypes.lineBreak
+          val factoryNamePrefix = if (fillArgumentTypes.count() > 1) "  " else " "
+          add(
+              "return %N {$paramBreak$factoryNamePrefix%T(",
+              method.providerGetName(),
+              method.concreteType.fullType
+          )
+          if (!construct(fillArgumentTypes, method.providedType)) {
             return null
           }
 
-          if (fieldTypeConstructorParams.count() > 1) add("\n  ")
+          if (fillArgumentTypes.count() > 1) add("\n  ")
           add(") $paramBreak}\n")
         }
         .build()
 
-    return FunSpec.builder(methodName)
+    return FunSpec.builder(method.getterName)
         .addModifiers(PRIVATE)
-        .returns(PROVIDER.parameterizedBy(returnTypeAndArgs.fullType))
+        .returns(PROVIDER.parameterizedBy(method.providedType.fullType))
         .addCode(code)
         .build()
   }
 
-  private fun providesFunction(
-    method: ExecutableElement,
-    providedTypeMethodNameMap: MutableMap<TypeAndArgs, MethodNameAndQualifier>
+  private fun addProvidesFunction(
+    method: BinderOrProvider,
+    providedTypeMethodNameMap: MutableMap<TypeAndArgs, BinderOrProvider>
   ): FunSpec? {
-    val originalMethodName = method.simpleName.toString()
-    val newMethodName = "$PROVIDE_FUNCTION_PREFIX${originalMethodName.capitalize()}"
-    val returnTypeAndArgs = method.returnTypeAsTypeAndArgs(environment)
-
-    providedTypeMethodNameMap[returnTypeAndArgs] =
-      MethodNameAndQualifier(
-          name = newMethodName,
-          qualifier = returnTypeAndArgs.qualifier
-      )
-
+    providedTypeMethodNameMap[method.providedType] = method
     val code = CodeBlock.builder()
         .apply {
-          val methodParams = method.getMethodParamsTypeAndArgs(environment)
-          val paramBreak = methodParams.lineBreak
-          val factoryNamePrefix = if (methodParams.count() > 1) "  " else " "
+          val fillArgumentTypes = method.fillArgumentTypes
+          val paramBreak = fillArgumentTypes.lineBreak
+          val factoryNamePrefix = if (fillArgumentTypes.count() > 1) "  " else " "
 
           add(
               "return %N {$paramBreak$factoryNamePrefix%N(",
               method.providerGetName(),
-              originalMethodName
+              method.methodName
           )
-          if (!construct(methodParams, returnTypeAndArgs)) {
+          if (!construct(fillArgumentTypes, method.providedType)) {
             return null
           }
 
-          if (method.parameters.size > 1) add("\n  ")
+          if (fillArgumentTypes.count() > 1) add("\n  ")
           add(") $paramBreak}\n")
         }
         .build()
 
-    return FunSpec.builder(newMethodName)
+    return FunSpec.builder(method.getterName)
         .addModifiers(PRIVATE)
-        .returns(PROVIDER.parameterizedBy(returnTypeAndArgs.fullType))
+        .returns(PROVIDER.parameterizedBy(method.providedType.fullType))
         .addCode(code)
         .build()
   }
@@ -379,12 +317,11 @@ internal class ModuleBuilder(
 
   private val Sequence<*>.lineBreak get() = if (count() > 1) "\n" else ""
 
-  private fun ExecutableElement.providerGetName(): String {
-    val isSingleton = hasAnnotationMirror<Singleton>()
+  private fun BinderOrProvider.providerGetName(): String {
     return when {
-      returnType.isViewModel(environment) -> {
+      providedType.isViewModel -> {
         if (isSingleton) {
-          environment.warn("$this: ViewModels cannot be Singleton. Annotation ignored.")
+          environment.warn("$this: ViewModels cannot be @Singleton. Annotation ignored.")
         }
         haveNonSingletons = true
         haveViewModels = true
@@ -400,13 +337,4 @@ internal class ModuleBuilder(
       }
     }
   }
-
-  companion object {
-    const val PROVIDE_FUNCTION_PREFIX = "_provides"
-  }
 }
-
-private data class MethodNameAndQualifier(
-  val name: String,
-  val qualifier: String?
-)

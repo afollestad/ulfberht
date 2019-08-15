@@ -125,8 +125,8 @@ internal class ComponentBuilder(
         .filterMethods()
         .filter { it.simpleName.toString() == INJECT_METHOD_NAME }
         .map(::injectFunction)
-        .filter { it != null }
-        .forEach { typeBuilder.addFunction(it!!) }
+        .filterNotNull()
+        .forEach { typeBuilder.addFunction(it) }
 
     val fileSpec = FileSpec.builder(pkg, fileName)
         .addType(typeBuilder.build())
