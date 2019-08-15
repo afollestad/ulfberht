@@ -262,8 +262,12 @@ internal class ComponentBuilder(
               """
               if ($CALLED_BY === this) return null
               $MODULES_LIST_NAME.forEach { module ->
-                module.$GET_PROVIDER_NAME<%T>($WANTED_TYPE, $GENERIC_ARGS, $QUALIFIER, $CALLED_BY ?: this)
-                    ?.let { return it }
+                module.$GET_PROVIDER_NAME<%T>(
+                   $WANTED_TYPE = $WANTED_TYPE, 
+                   $GENERIC_ARGS = $GENERIC_ARGS,
+                   $QUALIFIER = $QUALIFIER,
+                   $CALLED_BY = $CALLED_BY ?: this
+                )?.let { return it }
               }
               """.trimIndent() + "\n\n",
               TYPE_VARIABLE_T
@@ -275,11 +279,14 @@ internal class ComponentBuilder(
             """
             if ($PARENT_NAME != null && $CALLED_BY === $PARENT_NAME) return null
             val runtimeProvider = $GET_RUNTIME_DEP_NAME<%T>($QUALIFIER)
-              ?.run { $FACTORY_EXTENSION_NAME { this } }
-            return runtimeProvider ?: $PARENT_NAME
-              ?.$GET_PROVIDER_NAME<%T>($WANTED_TYPE, $GENERIC_ARGS, $QUALIFIER, $CALLED_BY)
+                ?.run { $FACTORY_EXTENSION_NAME { this } }
+            return runtimeProvider ?: $PARENT_NAME?.$GET_PROVIDER_NAME(
+                $WANTED_TYPE = $WANTED_TYPE,
+                $GENERIC_ARGS = $GENERIC_ARGS, 
+                $QUALIFIER = $QUALIFIER, 
+                $CALLED_BY = $CALLED_BY
+            )
             """.trimIndent() + "\n",
-            TYPE_VARIABLE_T,
             TYPE_VARIABLE_T
         )
     )
