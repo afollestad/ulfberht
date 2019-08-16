@@ -25,29 +25,24 @@ import com.afollestad.ulfberht.util.Names.MODULES_LIST_NAME
 import com.afollestad.ulfberht.util.Names.PARENT_NAME
 import com.afollestad.ulfberht.util.Names.PARENT_TYPE_NAME
 import com.afollestad.ulfberht.util.Names.RUNTIME_DEPS_NAME
-import com.afollestad.ulfberht.util.Names.QUALIFIER
 import com.afollestad.ulfberht.util.Names.VIEW_MODEL_FACTORY_CREATE
+import com.afollestad.ulfberht.util.Annotations.SUPPRESS_UNCHECKED_CAST
 import com.afollestad.ulfberht.util.ProcessorUtil.asFileName
 import com.afollestad.ulfberht.util.ProcessorUtil.asTypeElement
 import com.afollestad.ulfberht.util.ProcessorUtil.error
 import com.afollestad.ulfberht.util.ProcessorUtil.filterMethods
 import com.afollestad.ulfberht.util.ProcessorUtil.getAnnotationMirror
 import com.afollestad.ulfberht.util.ProcessorUtil.applyIf
-import com.afollestad.ulfberht.util.ProcessorUtil.asTypeAndArgs
 import com.afollestad.ulfberht.util.ProcessorUtil.getFullClassName
 import com.afollestad.ulfberht.util.ProcessorUtil.getModulesTypes
 import com.afollestad.ulfberht.util.ProcessorUtil.getPackage
 import com.afollestad.ulfberht.util.ProcessorUtil.getParameter
-import com.afollestad.ulfberht.util.ProcessorUtil.injectedFieldsAndQualifiers
+import com.afollestad.ulfberht.util.ProcessorUtil.injectingFields
 import com.afollestad.ulfberht.util.ProcessorUtil.hasInterface
-import com.afollestad.ulfberht.util.ProcessorUtil.hasSuperClass
 import com.afollestad.ulfberht.util.ProcessorUtil.name
 import com.afollestad.ulfberht.util.ProcessorUtil.isVoid
-import com.afollestad.ulfberht.util.ProcessorUtil.warn
 import com.afollestad.ulfberht.util.Types.BASE_COMPONENT
 import com.afollestad.ulfberht.util.Types.BASE_MODULE
-import com.afollestad.ulfberht.util.Types.FRAGMENT
-import com.afollestad.ulfberht.util.Types.FRAGMENT_ACTIVITY
 import com.afollestad.ulfberht.util.Types.GET_SCOPE_METHOD
 import com.afollestad.ulfberht.util.Types.KCLASS_OF_ANY
 import com.afollestad.ulfberht.util.Types.LIFECYCLE_EVENT_ON_DESTROY
@@ -58,7 +53,6 @@ import com.afollestad.ulfberht.util.Types.NULLABLE_BASE_COMPONENT
 import com.afollestad.ulfberht.util.Types.ON_LIFECYCLE_EVENT
 import com.afollestad.ulfberht.util.Types.VIEW_MODEL
 import com.afollestad.ulfberht.util.Types.VIEW_MODEL_FACTORY
-import com.afollestad.ulfberht.util.Types.VIEW_MODEL_PROVIDERS
 import com.squareup.kotlinpoet.ANY
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
@@ -257,57 +251,30 @@ internal class ComponentBuilder(
         .asTypeElement()
     val code = CodeBlock.builder()
 
-    for ((field, qualifier) in paramElement.enclosedElements.injectedFieldsAndQualifiers()) {
-      val fieldTypeAndArgs = field.asTypeAndArgs(environment)
-      val getterName = fieldTypeAndArgs.getterName
-      val doubleBang = if (fieldTypeAndArgs.isProvider) "!!" else ""
-
-      code.add("$paramName.%N = ", field.simpleName)
-      if (fieldTypeAndArgs.isViewModel) {
-        // TODO move this if block to a separate module?
-        if (!paramElement.hasSuperClass(environment, FRAGMENT, FRAGMENT_ACTIVITY)) {
-          environment.warn("$paramElement cannot inject view models.")
-          return null
+    paramElement.enclosedElements
+        .injectingFields(environment)
+        .forEach {
+          val result = it.setFieldInTarget(
+              environment = environment,
+              targetParamName = paramName,
+              targetClassElement = paramElement,
+              code = code
+          )
+          if (!result) return@injectFunction null
         }
-        code.add(
-            "%T.of($paramName, this)[%T::class.java]",
-            VIEW_MODEL_PROVIDERS,
-            fieldTypeAndArgs.erasedType
-        )
-      } else {
-        code.add("$getterName(%T::class", fieldTypeAndArgs.erasedType)
-        code.applyIf(fieldTypeAndArgs.hasGenericArgs) {
-          add(", setOf(")
-          for ((index, typeArg) in fieldTypeAndArgs.genericArgs.withIndex()) {
-            if (index > 0) add(", ")
-            add("%T::class", typeArg)
-          }
-          add(")")
-        }
-        code.applyIf(qualifier != null) {
-          add(", $QUALIFIER = %S", qualifier)
-        }
-        code.add(")$doubleBang")
-        code.applyIf(!fieldTypeAndArgs.isProvider && fieldTypeAndArgs.hasGenericArgs) {
-          add(" as %T", fieldTypeAndArgs.fullType)
-        }
-      }
-
-      code.add("\n")
-    }
 
     if (!maybeAddLifecycleObserver(paramElement, paramName, code)) {
       return null
     }
 
     return FunSpec.builder(method.simpleName.toString())
+        .addAnnotation(SUPPRESS_UNCHECKED_CAST)
         .addModifiers(OVERRIDE)
         .addParameter(paramName, parameter.asType().asTypeName())
         .addCode(code.build())
         .build()
   }
 
-  // TODO move this to a separate module?
   private fun viewModelFactoryCreateFunction(): FunSpec {
     val typeVariableT = TypeVariableName("T", VIEW_MODEL)
     val classOfT = Class::class.asTypeName()
@@ -321,7 +288,6 @@ internal class ComponentBuilder(
         .build()
   }
 
-  // TODO move this to a separate module?
   private fun maybeAddLifecycleObserver(
     paramElement: TypeElement,
     paramName: String,

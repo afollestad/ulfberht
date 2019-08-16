@@ -33,6 +33,14 @@ abstract class TestBaseModule : BaseModule {
     calledBy: BaseComponent?
   ): Provider<T>? = null
 
+  override fun <T : Any> populateSet(
+    set: MutableSet<T>,
+    setOfType: KClass<T>,
+    genericArgsOfType: Set<KClass<*>>,
+    qualifier: String?,
+    calledBy: BaseComponent?
+  ) = Unit
+
   override fun destroy() {
     isDestroyed = true
     super.destroy()

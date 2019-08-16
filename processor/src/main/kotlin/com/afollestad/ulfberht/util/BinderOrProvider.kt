@@ -16,12 +16,12 @@
 package com.afollestad.ulfberht.util
 
 import com.afollestad.ulfberht.annotation.Binds
+import com.afollestad.ulfberht.annotation.IntoSet
 import com.afollestad.ulfberht.annotation.Provides
 import com.afollestad.ulfberht.annotation.Singleton
 import com.afollestad.ulfberht.util.BindOrProvide.BIND
 import com.afollestad.ulfberht.util.BindOrProvide.PROVIDE
 import com.afollestad.ulfberht.util.BinderOrProvider.Companion.PROVIDE_FUNCTION_PREFIX
-import com.afollestad.ulfberht.util.ProcessorUtil.asTypeAndArgs
 import com.afollestad.ulfberht.util.ProcessorUtil.asTypeElement
 import com.afollestad.ulfberht.util.ProcessorUtil.error
 import com.afollestad.ulfberht.util.ProcessorUtil.filterMethods
@@ -29,7 +29,6 @@ import com.afollestad.ulfberht.util.ProcessorUtil.getConstructorParamsTypesAndAr
 import com.afollestad.ulfberht.util.ProcessorUtil.getMethodParamsTypeAndArgs
 import com.afollestad.ulfberht.util.ProcessorUtil.hasAnnotationMirror
 import com.afollestad.ulfberht.util.ProcessorUtil.isAbstractClass
-import com.afollestad.ulfberht.util.ProcessorUtil.returnTypeAsTypeAndArgs
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.Element
 import javax.lang.model.element.ElementKind.INTERFACE
@@ -42,6 +41,14 @@ internal enum class BindOrProvide {
 }
 
 /** @author Aidan Follestad (@afollestad) */
+internal data class BinderOrProviderKey(
+  val mode: BindOrProvide,
+  val providedType: TypeAndArgs,
+  val qualifier: String?,
+  val intoSet: Boolean
+)
+
+/** @author Aidan Follestad (@afollestad) */
 internal data class BinderOrProvider(
   val mode: BindOrProvide,
   val methodName: String,
@@ -49,8 +56,17 @@ internal data class BinderOrProvider(
   val providedType: TypeAndArgs,
   val concreteType: TypeAndArgs,
   val isSingleton: Boolean,
-  val fillArgumentTypes: Sequence<TypeAndArgs>
+  val fillArgumentTypes: Sequence<TypeAndArgs>,
+  val intoSet: Boolean
 ) {
+  /** Used for grouping. */
+  val key: BinderOrProviderKey
+    get() = BinderOrProviderKey(
+        mode = mode,
+        providedType = providedType,
+        qualifier = qualifier,
+        intoSet = intoSet
+    )
   val qualifier: String? get() = providedType.qualifier
 
   companion object {
@@ -58,11 +74,13 @@ internal data class BinderOrProvider(
   }
 }
 
+internal typealias KeyedBinderOrProvider = Map.Entry<BinderOrProviderKey, List<BinderOrProvider>>
+
 /** @author Aidan Follestad (@afollestad) */
 internal fun Element.getBindsAndProvidesMethods(
   env: ProcessingEnvironment,
   dependencyGraph: DependencyGraph
-): Sequence<BinderOrProvider> {
+): Sequence<KeyedBinderOrProvider> {
   return enclosedElements
       .filterMethods()
       .filter {
@@ -85,6 +103,8 @@ internal fun Element.getBindsAndProvidesMethods(
         }
       }
       .filterNotNull()
+      .groupBy { it.key }
+      .asSequence()
 }
 
 private fun ExecutableElement.asBindsMethod(
@@ -124,7 +144,8 @@ private fun ExecutableElement.asBindsMethod(
       providedType = returnTypeAndArgs,
       concreteType = concreteType,
       isSingleton = hasAnnotationMirror<Singleton>(),
-      fillArgumentTypes = fillArgumentTypes
+      fillArgumentTypes = fillArgumentTypes,
+      intoSet = hasAnnotationMirror<IntoSet>()
   )
 }
 
@@ -150,6 +171,7 @@ private fun ExecutableElement.asProvidesMethod(
       providedType = returnTypeAndArgs,
       concreteType = returnTypeAndArgs,
       isSingleton = hasAnnotationMirror<Singleton>(),
-      fillArgumentTypes = fillArgumentTypes
+      fillArgumentTypes = fillArgumentTypes,
+      intoSet = hasAnnotationMirror<IntoSet>()
   )
 }

@@ -21,18 +21,24 @@ import com.afollestad.ulfberht.util.BindOrProvide.BIND
 import com.afollestad.ulfberht.util.BindOrProvide.PROVIDE
 import com.afollestad.ulfberht.util.BinderOrProvider
 import com.afollestad.ulfberht.util.DependencyGraph
+import com.afollestad.ulfberht.util.KeyedBinderOrProvider
 import com.afollestad.ulfberht.util.Names.CACHED_PROVIDERS_NAME
 import com.afollestad.ulfberht.util.Names.CALLED_BY
 import com.afollestad.ulfberht.util.Names.CLASS_HEADER
 import com.afollestad.ulfberht.util.Names.COMPONENT_PARAM_NAME
 import com.afollestad.ulfberht.util.Names.FACTORY_EXTENSION_NAME
 import com.afollestad.ulfberht.util.Names.GENERIC_ARGS
+import com.afollestad.ulfberht.util.Names.GENERIC_ARGS_OF_TYPE
+import com.afollestad.ulfberht.util.Names.GET_NAME
 import com.afollestad.ulfberht.util.Names.GET_PROVIDER_NAME
 import com.afollestad.ulfberht.util.Names.IS_SUBCLASS_EXTENSION_NAME
 import com.afollestad.ulfberht.util.Names.LIBRARY_COMMON_PACKAGE
 import com.afollestad.ulfberht.util.Names.LIBRARY_PACKAGE
 import com.afollestad.ulfberht.util.Names.MODULE_NAME_SUFFIX
+import com.afollestad.ulfberht.util.Names.POPULATE_SET_NAME
 import com.afollestad.ulfberht.util.Names.QUALIFIER
+import com.afollestad.ulfberht.util.Names.SET_NAME
+import com.afollestad.ulfberht.util.Names.SET_OF_TYPE
 import com.afollestad.ulfberht.util.Names.SINGLETON_PROVIDER_EXTENSION_NAME
 import com.afollestad.ulfberht.util.Names.WANTED_TYPE
 import com.afollestad.ulfberht.util.ProcessorUtil.applyIf
@@ -46,6 +52,7 @@ import com.afollestad.ulfberht.util.TypeAndArgs
 import com.afollestad.ulfberht.util.Types.BASE_COMPONENT
 import com.afollestad.ulfberht.util.Types.BASE_MODULE
 import com.afollestad.ulfberht.util.Types.KCLASS_OF_ANY
+import com.afollestad.ulfberht.util.Types.KCLASS_OF_T
 import com.afollestad.ulfberht.util.Types.NULLABLE_BASE_COMPONENT
 import com.afollestad.ulfberht.util.Types.NULLABLE_KOTLIN_STRING
 import com.afollestad.ulfberht.util.Types.PROVIDER
@@ -61,6 +68,7 @@ import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier.OVERRIDE
 import com.squareup.kotlinpoet.KModifier.PRIVATE
 import com.squareup.kotlinpoet.MUTABLE_MAP
+import com.squareup.kotlinpoet.MUTABLE_SET
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.SET
@@ -100,20 +108,32 @@ internal class ModuleBuilder(
         .also { fullClassName = element.getFullClassName(environment, it) }
     val fileName = fullClassName.asFileName(MODULE_NAME_SUFFIX)
     val typeBuilder = moduleTypeBuilder(fileName, element.isAbstractClass(), fullClassName)
-    val providedTypeMethodNameMap = mutableMapOf<TypeAndArgs, BinderOrProvider>()
+    val bindersAndProvidersList = mutableListOf<KeyedBinderOrProvider>()
 
     element.getBindsAndProvidesMethods(environment, dependencyGraph)
-        .map {
-          when (it.mode) {
-            BIND -> addBindsFunction(it, providedTypeMethodNameMap)
-            PROVIDE -> addProvidesFunction(it, providedTypeMethodNameMap)
+        .flatMap { method ->
+          bindersAndProvidersList.add(method)
+          if (!method.key.intoSet && method.value.size > 1) {
+            environment.error(
+                "$element: More than one binding found for ${method.key.providedType}"
+            )
+            return@flatMap emptySequence<FunSpec>()
           }
+          val values = method.value
+              .asSequence()
+          when (method.key.mode) {
+            BIND -> values.map { addBindsFunction(it) }
+            PROVIDE -> values.map { addProvidesFunction(it) }
+          }.filterNotNull()
         }
         .filterNotNull()
         .forEach { typeBuilder.addFunction(it) }
 
     val typeSpec = typeBuilder
-        .addFunction(getProviderFunction(providedTypeMethodNameMap))
+        .addFunction(getProviderFunction(bindersAndProvidersList))
+        .apply {
+          populateSetFunction(bindersAndProvidersList)?.let { addFunction(it) }
+        }
         .build()
     val fileSpec = FileSpec.builder(pkg, fileName)
         .addImport(LIBRARY_PACKAGE, IS_SUBCLASS_EXTENSION_NAME)
@@ -159,37 +179,40 @@ internal class ModuleBuilder(
         .build()
   }
 
-  private fun getProviderFunction(
-    providedTypeMethodNameMap: MutableMap<TypeAndArgs, BinderOrProvider>
-  ): FunSpec {
+  private fun getProviderFunction(bindersAndProvidersList: List<KeyedBinderOrProvider>): FunSpec {
     val code = CodeBlock.builder()
         .add("return when {\n")
+    bindersAndProvidersList
+        .asSequence()
+        .filter { !it.key.intoSet }
+        .map { it.value.single() }
+        .forEach { binderOrProvider ->
+          val typeAndArgs = binderOrProvider.providedType
+          val getterName = binderOrProvider.getterName
+          check(getterName.isNotBlank())
+          val qualifier = binderOrProvider.qualifier
 
-    for ((typeAndArgs, binderOrProvider) in providedTypeMethodNameMap) {
-      val getterName = binderOrProvider.getterName
-      check(getterName.isNotBlank())
-      val qualifier = binderOrProvider.qualifier
-
-      code.add("  $WANTED_TYPE.$IS_SUBCLASS_EXTENSION_NAME(%T::class)", typeAndArgs.erasedType)
-      code.applyIf(typeAndArgs.hasGenericArgs) {
-        add(" && $GENERIC_ARGS == setOf(")
-        for ((index, typeArg) in typeAndArgs.genericArgs.withIndex()) {
-          if (index > 0) add(", ")
-          add("%T::class", typeArg)
+          code.add("  $WANTED_TYPE.$IS_SUBCLASS_EXTENSION_NAME(%T::class)", typeAndArgs.erasedType)
+          code.applyIf(typeAndArgs.hasGenericArgs) {
+            add(" && $GENERIC_ARGS == setOf(")
+            for ((index, typeArg) in typeAndArgs.genericArgs.withIndex()) {
+              if (index > 0) add(", ")
+              add("%T::class", typeArg)
+            }
+            add(")")
+          }
+          code.applyIf(!typeAndArgs.hasGenericArgs) {
+            add(" && $GENERIC_ARGS.isEmpty()")
+          }
+          code.applyIf(qualifier != null) {
+            add(" && $QUALIFIER == %S", qualifier)
+          }
+          code.applyIf(qualifier == null) {
+            add(" && $QUALIFIER == null")
+          }
+          code.add(" -> %N() as %T\n", getterName, PROVIDER_OF_T)
         }
-        add(")")
-      }
-      code.applyIf(!typeAndArgs.hasGenericArgs) {
-        add(" && $GENERIC_ARGS.isEmpty()")
-      }
-      code.applyIf(qualifier != null) {
-        add(" && $QUALIFIER == %S", qualifier)
-      }
-      code.applyIf(qualifier == null) {
-        add(" && $QUALIFIER == null")
-      }
-      code.add(" -> %N() as %T\n", getterName, PROVIDER_OF_T)
-    }
+
     code.apply {
       addStatement(
           "  else -> %N.$GET_PROVIDER_NAME($WANTED_TYPE, $GENERIC_ARGS, $QUALIFIER, $CALLED_BY)",
@@ -211,11 +234,63 @@ internal class ModuleBuilder(
         .build()
   }
 
-  private fun addBindsFunction(
-    method: BinderOrProvider,
-    providedTypeMethodNameMap: MutableMap<TypeAndArgs, BinderOrProvider>
-  ): FunSpec? {
-    providedTypeMethodNameMap[method.providedType] = method
+  private fun populateSetFunction(bindersAndProvidersList: List<KeyedBinderOrProvider>): FunSpec? {
+    val setBindersOrProviders = bindersAndProvidersList
+        .filter { it.key.intoSet }
+    if (setBindersOrProviders.isEmpty()) {
+      return null
+    }
+
+    val code = CodeBlock.builder()
+        .add("when {\n")
+    setBindersOrProviders.forEach { (key, binderOrProviders) ->
+      val typeAndArgs = key.providedType
+      val qualifier = key.qualifier
+
+      code.add("  $SET_OF_TYPE.$IS_SUBCLASS_EXTENSION_NAME(%T::class)", typeAndArgs.erasedType)
+      code.applyIf(typeAndArgs.hasGenericArgs) {
+        add(" && $GENERIC_ARGS_OF_TYPE == setOf(")
+        for ((index, typeArg) in typeAndArgs.genericArgs.withIndex()) {
+          if (index > 0) add(", ")
+          add("%T::class", typeArg)
+        }
+        add(")")
+      }
+      code.applyIf(!typeAndArgs.hasGenericArgs) {
+        add(" && $GENERIC_ARGS_OF_TYPE.isEmpty()")
+      }
+      code.applyIf(qualifier != null) {
+        add(" && $QUALIFIER == %S", qualifier)
+      }
+      code.applyIf(qualifier == null) {
+        add(" && $QUALIFIER == null")
+      }
+
+      code.add(" -> $SET_NAME.addAll(setOf(")
+      binderOrProviders.forEachIndexed { index, binderOrProvider ->
+        if (index > 0) code.add(", ")
+        val getterName = binderOrProvider.getterName
+        check(getterName.isNotBlank())
+        code.add("%N().$GET_NAME() as %T", getterName, TYPE_VARIABLE_T)
+      }
+      code.add("))\n")
+    }
+
+    code.add("}\n")
+    return FunSpec.builder(POPULATE_SET_NAME)
+        .addAnnotation(SUPPRESS_UNCHECKED_CAST)
+        .addModifiers(OVERRIDE)
+        .addTypeVariable(TYPE_VARIABLE_T)
+        .addParameter(SET_NAME, MUTABLE_SET.parameterizedBy(TYPE_VARIABLE_T))
+        .addParameter(SET_OF_TYPE, KCLASS_OF_T)
+        .addParameter(GENERIC_ARGS_OF_TYPE, SET.parameterizedBy(KCLASS_OF_ANY))
+        .addParameter(QUALIFIER, NULLABLE_KOTLIN_STRING)
+        .addParameter(CALLED_BY, NULLABLE_BASE_COMPONENT)
+        .addCode(code.build())
+        .build()
+  }
+
+  private fun addBindsFunction(method: BinderOrProvider): FunSpec? {
     val code = CodeBlock.builder()
         .apply {
           val fillArgumentTypes = method.fillArgumentTypes
@@ -242,11 +317,7 @@ internal class ModuleBuilder(
         .build()
   }
 
-  private fun addProvidesFunction(
-    method: BinderOrProvider,
-    providedTypeMethodNameMap: MutableMap<TypeAndArgs, BinderOrProvider>
-  ): FunSpec? {
-    providedTypeMethodNameMap[method.providedType] = method
+  private fun addProvidesFunction(method: BinderOrProvider): FunSpec? {
     val code = CodeBlock.builder()
         .apply {
           val fillArgumentTypes = method.fillArgumentTypes

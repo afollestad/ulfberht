@@ -15,7 +15,6 @@
  */
 package com.afollestad.ulfberht.util
 
-import com.afollestad.ulfberht.Provider
 import com.afollestad.ulfberht.annotation.Inject
 import com.afollestad.ulfberht.annotation.Qualifier
 import com.afollestad.ulfberht.util.Names.MODULES_LIST_NAME
@@ -68,82 +67,12 @@ internal object ProcessorUtil {
     return getAnnotationMirror<T>() != null
   }
 
-  private fun Element.getQualifier(): String? {
+  fun Element.getQualifier(): String? {
     return annotationMirrors.singleOrNull { ann ->
       ann.annotationType.asElement()
           .hasAnnotationMirror<Qualifier>()
     }
         ?.toString()
-  }
-
-  fun TypeMirror.asTypeAndArgs(
-    env: ProcessingEnvironment,
-    nullable: Boolean = false,
-    qualifier: String?,
-    isProvider: Boolean = false
-  ): TypeAndArgs {
-    val baseType = env.typeUtils.erasure(this)
-        .correctTypeName(env)
-    val typeArgs = if (this is DeclaredType) {
-      typeArguments
-    } else {
-      emptyList<TypeMirror>()
-    }
-
-    if (baseType.toString() == Provider::class.qualifiedName) {
-      check(typeArgs.size == 1)
-      return typeArgs.single()
-          .asTypeAndArgs(env, nullable, qualifier, isProvider = true)
-    }
-
-    val isViewModel = isViewModel(env)
-    val typeArgsNames: Array<TypeName> = if (isViewModel) {
-      if (typeArgs.isNotEmpty()) {
-        env.warn("$this: Generic args on view models are ignored.")
-      }
-      emptyArray()
-    } else {
-      typeArgs
-          .map { it.correctTypeName(env) }
-          .toTypedArray()
-    }
-    val actualQualifier = if (isViewModel) {
-      if (!qualifier.isNullOrEmpty()) {
-        env.warn("$this: Qualifiers on view models are ignored.")
-      }
-      null
-    } else {
-      qualifier
-    }
-
-    return TypeAndArgs(
-        fullType = correctTypeName(env).copy(nullable = nullable),
-        erasedType = baseType.copy(nullable = nullable),
-        genericArgs = typeArgsNames,
-        qualifier = actualQualifier,
-        isProvider = isProvider,
-        isViewModel = isViewModel
-    )
-  }
-
-  fun VariableElement.asTypeAndArgs(
-    env: ProcessingEnvironment
-  ): TypeAndArgs {
-    return asType().asTypeAndArgs(
-        env = env,
-        nullable = isNullable(),
-        qualifier = getQualifier()
-    )
-  }
-
-  fun ExecutableElement.returnTypeAsTypeAndArgs(
-    env: ProcessingEnvironment
-  ): TypeAndArgs {
-    return returnType.asTypeAndArgs(
-        env = env,
-        nullable = isNullable(),
-        qualifier = getQualifier()
-    )
   }
 
   fun Element.getFullClassName(
@@ -165,10 +94,12 @@ internal object ProcessorUtil {
         .map { it as VariableElement }
   }
 
-  fun Collection<Element>.injectedFieldsAndQualifiers(): Sequence<Pair<VariableElement, String?>> {
+  fun Collection<Element>.injectingFields(
+    env: ProcessingEnvironment
+  ): Sequence<InjectingField> {
     return filterFields()
-        .filter { it.getAnnotationMirror<Inject>() != null }
-        .map { Pair(it, it.getQualifier()) }
+        .filter { it.hasAnnotationMirror<Inject>() }
+        .map { it.asInjectField(env) }
   }
 
   fun Collection<Element>.filterMethods(): Sequence<ExecutableElement> {
@@ -317,7 +248,7 @@ internal object ProcessorUtil {
       return if (qualifier.isEmpty()) null else qualifier
     }
 
-  private fun TypeMirror?.isViewModel(env: ProcessingEnvironment): Boolean {
+  fun TypeMirror?.isViewModel(env: ProcessingEnvironment): Boolean {
     if (this == null) {
       return false
     }
@@ -334,7 +265,7 @@ internal object ProcessorUtil {
         .singleOrNull()
   }
 
-  private fun TypeMirror.correctTypeName(
+  fun TypeMirror.correctTypeName(
     env: ProcessingEnvironment
   ): TypeName {
     var baseType: TypeMirror = this
@@ -376,7 +307,7 @@ internal object ProcessorUtil {
     return if (args.isEmpty()) this else parameterizedBy(*args)
   }
 
-  private fun Element.isNullable(): Boolean {
+  fun Element.isNullable(): Boolean {
     return getAnnotationMirror<Nullable>() != null &&
         getAnnotationMirror<NotNull>() == null
   }

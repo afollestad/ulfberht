@@ -33,12 +33,18 @@ import kotlin.reflect.KClass
 
 /** @author Aidan Follestad (@afollestad) */
 internal object Names {
+  const val SET_NAME = "set"
+  const val SET_OF_TYPE = "setOfType"
+  const val GENERIC_ARGS_OF_TYPE = "genericArgsOfType"
   const val WANTED_TYPE = "wantedType"
   const val QUALIFIER = "qualifier"
   const val GENERIC_ARGS = "genericArgs"
   const val CALLED_BY = "calledBy"
 
+  const val GET_SET_NAME = "getSet"
+  const val GET_SET_PROVIDER_NAME = "getSetProvider"
   const val GET_PROVIDER_NAME = "getProvider"
+  const val POPULATE_SET_NAME = "populateSet"
   const val GET_NAME = "get"
 
   const val CACHED_PROVIDERS_NAME = "cachedProviders"
@@ -70,6 +76,7 @@ internal object Types {
 
   private val KCLASS = KClass::class.asTypeName()
   val KCLASS_OF_ANY = KCLASS.parameterizedBy(STAR)
+  val KCLASS_OF_T = KCLASS.parameterizedBy(TYPE_VARIABLE_T)
 
   val PROVIDER = Provider::class.asTypeName()
   val PROVIDER_OF_T = PROVIDER.parameterizedBy(TYPE_VARIABLE_T)

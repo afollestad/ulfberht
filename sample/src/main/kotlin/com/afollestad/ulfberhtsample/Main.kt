@@ -85,13 +85,17 @@ class Main {
   @Inject lateinit var someClass2: SomeClass<Int, Long>
   @Inject @field:Message lateinit var messageProvider: Provider<String>
   @Inject lateinit var someClassProvider: Provider<SomeClass<String, Boolean>>
-  // @Inject lateinit var aStringSet: Set<String>
+  @Inject lateinit var stringSet: Set<String>
+  @Inject lateinit var stringSetProvider: Provider<Set<String>>
 
   fun doSomething() {
     one.doSomething()
     println(someClass1.toString())
     println(someClass2.toString())
-    // println("Strings: ${aStringSet.joinToString(prefix = "[", postfix = "]")}")
+    println("Strings: ${stringSet.joinToString(prefix = "[", postfix = "]")}")
+    println(
+        "Strings (provider): ${stringSetProvider.get().joinToString(prefix = "[", postfix = "]")}"
+    )
   }
 
   init {

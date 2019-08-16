@@ -65,7 +65,8 @@ interface BaseComponent : ScopeObserver {
           genericArgs = genericArgs,
           qualifier = qualifier,
           calledBy = calledBy ?: this
-      )?.let { return it }
+      )
+          ?.let { return it }
     }
 
     if (parent != null && calledBy === parent) return null
@@ -75,7 +76,58 @@ interface BaseComponent : ScopeObserver {
         wantedType = wantedType,
         genericArgs = genericArgs,
         qualifier = qualifier,
-        calledBy = calledBy
+        calledBy = calledBy ?: this
+    )
+  }
+
+  fun <T : Any> getSetProvider(
+    setOfType: KClass<T>,
+    genericArgsOfType: Set<KClass<*>> = emptySet(),
+    qualifier: String? = null
+  ): Provider<Set<T>> = factory {
+    getSet(setOfType, genericArgsOfType, qualifier)
+  }
+
+  fun <T : Any> getSet(
+    setOfType: KClass<T>,
+    genericArgsOfType: Set<KClass<*>> = emptySet(),
+    qualifier: String? = null
+  ): Set<T> {
+    val newSet = mutableSetOf<T>()
+    populateSet(
+        set = newSet,
+        setOfType = setOfType,
+        genericArgsOfType = genericArgsOfType,
+        qualifier = qualifier
+    )
+    return newSet
+  }
+
+  fun <T : Any> populateSet(
+    set: MutableSet<T>,
+    setOfType: KClass<T>,
+    genericArgsOfType: Set<KClass<*>> = emptySet(),
+    qualifier: String? = null,
+    calledBy: BaseComponent? = null
+  ) {
+    if (calledBy === this) return
+    modules.forEach { module ->
+      module.populateSet(
+          set = set,
+          setOfType = setOfType,
+          genericArgsOfType = genericArgsOfType,
+          qualifier = qualifier,
+          calledBy = calledBy ?: this
+      )
+    }
+
+    if (parent != null && calledBy === parent) return
+    parent?.populateSet(
+        set = set,
+        setOfType = setOfType,
+        genericArgsOfType = genericArgsOfType,
+        qualifier = qualifier,
+        calledBy = calledBy ?: this
     )
   }
 

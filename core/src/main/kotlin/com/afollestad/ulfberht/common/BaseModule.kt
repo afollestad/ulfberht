@@ -18,6 +18,7 @@
 package com.afollestad.ulfberht.common
 
 import com.afollestad.ulfberht.Provider
+import com.afollestad.ulfberht.annotation.IntoSet
 import kotlin.reflect.KClass
 
 /**
@@ -50,6 +51,15 @@ interface BaseModule {
     qualifier: String? = null,
     calledBy: BaseComponent? = null
   ): Provider<T>?
+
+  /** Used to recursively populate a Set for [IntoSet] dependencies. */
+  fun <T : Any> populateSet(
+    set: MutableSet<T>,
+    setOfType: KClass<T>,
+    genericArgsOfType: Set<KClass<*>> = emptySet(),
+    qualifier: String? = null,
+    calledBy: BaseComponent? = null
+  ) = Unit
 
   /** Destroys the module, releasing held singletons and other resources. */
   fun destroy() {
