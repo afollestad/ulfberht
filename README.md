@@ -1,6 +1,6 @@
 # Ulfberht
 
-[ ![Bintray](https://api.bintray.com/packages/drummer-aidan/maven/ulfberht/images/download.svg) ](https://bintray.com/drummer-aidan/maven/ulfberht/_latestVersion)
+[ ![Maven Central](https://img.shields.io/maven-central/v/com.afollestad/ulfberht?style=flat&label=Maven+Central) ](https://repo1.maven.org/maven2/com/afollestad/ulfberht)
 [![Android CI](https://github.com/afollestad/ulfberht/workflows/Android%20CI/badge.svg)](https://github.com/afollestad/ulfberht/actions?query=workflow%3A%22Android+CI%22)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
