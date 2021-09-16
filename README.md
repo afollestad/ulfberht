@@ -1,3 +1,7 @@
+Note: Dagger2 and [Anvil](https://github.com/square/anvil) should be used in production apps.
+This is now mostly just an experiment with kapt and Kotlinpoet,
+IR should be used rather than Kapt these days. 
+
 # Ulfberht
 
 [ ![Maven Central](https://img.shields.io/maven-central/v/com.afollestad/ulfberht?style=flat&label=Maven+Central) ](https://repo1.maven.org/maven2/com/afollestad/ulfberht)
