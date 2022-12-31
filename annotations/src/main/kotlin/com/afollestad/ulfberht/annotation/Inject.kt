@@ -17,11 +17,15 @@
 
 package com.afollestad.ulfberht.annotation
 
+import kotlin.annotation.AnnotationRetention.SOURCE
+import kotlin.annotation.AnnotationTarget.CONSTRUCTOR
+import kotlin.annotation.AnnotationTarget.FIELD
+
 /**
- * Marks a field in any class to be populated via injection.
+ * TODO
  *
  * @author Aidan Follestad (@afollestad)
  */
-@Retention(AnnotationRetention.SOURCE)
-@Target(AnnotationTarget.FIELD)
+@Retention(SOURCE)
+@Target(FIELD, CONSTRUCTOR)
 annotation class Inject

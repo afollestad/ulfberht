@@ -1,13 +1,14 @@
-apply from: "../gradle/javaapp-withkapt.gradle"
-
-kapt.includeCompileClasspath = false
+apply from: rootProject.file("gradle/jvm-app.gradle")
+apply plugin: "com.google.devtools.ksp"
 
 dependencies {
+  implementation project(":annotations")
   implementation project(":core")
-  kapt project(":processor")
+  implementation deps.kotlin.stdlib
 
-  implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${versions.kotlin}"
-  implementation "org.jetbrains.kotlin:kotlin-reflect:${versions.kotlin}"
+  ksp project(":processor")
 }
 
-apply from: "../spotless.gradle"
+application {
+  mainClass.set("com.afollestad.ulfberht.sample.MainKt")
+}

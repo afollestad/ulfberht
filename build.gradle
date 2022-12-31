@@ -1,33 +1,39 @@
-apply from: './dependencies.gradle'
-apply from: './versionsPlugin.gradle'
+apply from: rootProject.file("gradle/versions-plugin.gradle")
 
 buildscript {
-  ext.kotlin_version = '1.3.41'
-
-  apply from: './dependencies.gradle'
+  apply from: rootProject.file("dependencies.gradle")
 
   repositories {
-    google()
-    jcenter()
     mavenCentral()
+    gradlePluginPortal()
+    google()
   }
   dependencies {
-    classpath "com.android.tools.build:gradle:${versions.gradlePlugin}"
-    classpath "com.diffplug.spotless:spotless-plugin-gradle:${versions.spotlessPlugin}"
-    classpath "com.novoda:bintray-release:${versions.bintrayRelease}"
-    classpath "com.github.ben-manes:gradle-versions-plugin:${versions.versionsPlugin}"
-    classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${versions.kotlin}"
-    classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    classpath deps.gradle_plugins.android
+    classpath deps.gradle_plugins.detekt
+    classpath deps.gradle_plugins.dokka
+    classpath deps.gradle_plugins.kotlin
+    classpath deps.gradle_plugins.ksp
+    classpath deps.gradle_plugins.ktlint
+    classpath deps.gradle_plugins.nexus_publish
+    classpath deps.gradle_plugins.versions
   }
 }
 
 allprojects {
   repositories {
+    mavenCentral()
+    gradlePluginPortal()
     google()
-    jcenter()
-  }
-
-  tasks.withType(Javadoc).all {
-    enabled = false
   }
 }
+
+subprojects {
+  tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    kotlinOptions {
+      freeCompilerArgs += ["-module-name", "ulfberht-" + project.path.substring(1).replace(':', '')]
+    }
+  }
+}
+
+apply from: rootProject.file("gradle/publish-root.gradle")

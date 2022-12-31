@@ -17,11 +17,14 @@
 
 package com.afollestad.ulfberht.annotation
 
+import kotlin.annotation.AnnotationRetention.SOURCE
+import kotlin.annotation.AnnotationTarget.ANNOTATION_CLASS
+
 /**
- * Marks another annotation class as a qualifier.
+ * TODO
  *
  * @author Aidan Follestad (@afollestad)
  */
-@Retention(AnnotationRetention.SOURCE)
-@Target(AnnotationTarget.ANNOTATION_CLASS)
+@Retention(SOURCE)
+@Target(ANNOTATION_CLASS)
 annotation class Qualifier

@@ -1,5 +1,0 @@
-apply plugin: 'java'
-apply plugin: 'kotlin'
-apply plugin: 'kotlin-kapt'
-apply from: '../dependencies.gradle'
-apply from: "../sourcesets.gradle"

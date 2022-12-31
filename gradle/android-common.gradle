@@ -1,0 +1,55 @@
+ext.module_package_id = "${module_group}.${module_name}"
+logger.info("Package ID: $module_package_id")
+
+apply plugin: "kotlin-android"
+
+apply from: rootProject.file("gradle/detekt-plugin.gradle")
+apply from: rootProject.file("gradle/ktlint-plugin.gradle")
+apply from: rootProject.file("dependencies.gradle")
+
+if (!project.hasProperty("min_sdk")) {
+  ext.min_sdk = versions.min_sdk
+} else {
+  logger.info("Using minSdk: $min_sdk")
+}
+
+android {
+  namespace module_package_id
+  compileSdkVersion versions.compile_sdk
+
+  compileOptions {
+    sourceCompatibility 1.8
+    targetCompatibility 1.8
+  }
+  kotlinOptions {
+    jvmTarget = "1.8"
+  }
+
+  defaultConfig {
+    minSdkVersion min_sdk
+    targetSdkVersion versions.compile_sdk
+    versionCode versions.publish_version_code
+    versionName versions.publish_version
+  }
+
+  sourceSets {
+    main {
+      kotlin.srcDirs += "src/main/kotlin"
+      kotlin.srcDirs += "build/generated/ksp/main/kotlin"
+      java.srcDirs += "src/main/kotlin"
+      res.srcDirs = [
+        "src/main/res",
+        "src/main/res-public"
+      ]
+    }
+    test {
+      kotlin.srcDirs += "src/test/kotlin"
+      kotlin.srcDirs += "build/generated/ksp/test/kotlin"
+      java.srcDirs += "src/test/kotlin"
+    }
+  }
+}
+
+dependencies {
+  implementation deps.kotlin.stdlib
+}

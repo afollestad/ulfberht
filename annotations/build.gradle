@@ -1,22 +1,9 @@
-apply from: "../gradle/javalib-nokapt.gradle"
+ext.module_group = "com.afollestad.ulfberht"
+ext.module_name = "annotations"
 
-ext.artifactId = "ulfberht-annotations"
-apply from: "../bintrayconfig.gradle"
-
-afterEvaluate {
-  if (modulePackageId != null && modulePackageId != '') {
-    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
-      kotlinOptions {
-        freeCompilerArgs += ['-module-name', modulePackageId]
-      }
-    }
-  } else {
-    logger.warn('Skipping setting compiler module name, no package to use.')
-  }
-}
+apply from: rootProject.file("gradle/jvm-common.gradle")
+apply from: rootProject.file("gradle/publish-module.gradle")
 
 dependencies {
-  api "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${versions.kotlin}"
+  implementation deps.kotlin.stdlib
 }
-
-apply from: "../spotless.gradle"

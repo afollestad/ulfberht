@@ -1,15 +1,33 @@
-apply from: "../gradle/javalib-withkapt.gradle"
+ext.module_group = "com.afollestad.ulfberht"
+ext.module_name = "processor"
 
-ext.artifactId = "ulfbert-processor"
-apply from: "../bintrayconfig.gradle"
+apply from: rootProject.file("gradle/jvm-library.gradle")
+apply from: rootProject.file("gradle/publish-module.gradle")
+apply plugin: "com.google.devtools.ksp"
 
-dependencies {
-  implementation project(":core")
-  implementation project(":annotations")
-
-  implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${versions.kotlin}"
-  implementation "org.jetbrains.kotlin:kotlin-reflect:${versions.kotlin}"
-  implementation "com.squareup:kotlinpoet:${versions.kotlinPoet}"
+ksp {
+  arg("autoserviceKsp.verify", "true")
+  arg("autoserviceKsp.verbose", "true")
 }
 
-apply from: "../spotless.gradle"
+dependencies {
+  api project(":core")
+  api project(":annotations")
+
+  implementation deps.google.auto_service
+  implementation deps.kotlin.reflect
+  implementation deps.square.kotlin_poet
+  implementation deps.square.kotlin_poet_ksp
+  implementation deps.google.ksp
+
+  testImplementation deps.testing.compile_testing
+  testImplementation deps.testing.compile_testing_ksp
+  testImplementation deps.testing.junit
+  testImplementation deps.testing.kotlin_test_junit
+
+  ksp deps.misc.auto_service_ksp
+}
+
+afterEvaluate {
+  tasks.androidSourcesJar.dependsOn(tasks.getByName("kspKotlin"))
+}

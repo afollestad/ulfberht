@@ -1,2 +1,0 @@
-apply from: "../gradle/javalib-nokapt.gradle"
-apply plugin: "kotlin-kapt"

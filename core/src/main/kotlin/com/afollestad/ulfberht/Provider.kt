@@ -13,19 +13,45 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+@file:Suppress("unused")
+
 package com.afollestad.ulfberht
 
 /**
- * A [Provider] is in charge of creating an instance of [T]. A Provider
- * can choose its value's retention policy, and should remove references when
- * [destroy] is invoked.
+ * TODO
+ */
+fun <T> provider(getter: () -> T): Provider<T> =
+  object : Provider<T> {
+    override fun get(): T = getter()
+    override fun destroy() = Unit
+  }
+
+/**
+ * TODO
+ */
+fun <T> singletonProvider(getter: () -> T): Provider<T> =
+  object : Provider<T> {
+    private var cache: T? = null
+    override fun get(): T = cache ?: getter().also { cache = it }
+    override fun destroy() {
+      cache = null
+    }
+  }
+
+/**
+ * TODO
  *
  * @author Aidan Follestad (@afollestad)
  */
 interface Provider<T> {
-  /** Gets an instance of [T]. */
+
+  /**
+   * TODO
+   */
   fun get(): T
 
-  /** Destroys any stored references. */
+  /**
+   * TODO
+   */
   fun destroy()
 }

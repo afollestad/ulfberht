@@ -1,0 +1,23 @@
+comments:
+  AbsentOrWrongFileLicense:
+    active: true
+    licenseTemplateFile: 'license-header.template'
+    excludes: [ '**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/jsTest/**', '**/iosTest/**', '**/sample/**/*' ]
+
+complexity:
+  LargeClass:
+    active: true
+    excludes: [ '**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/jsTest/**', '**/iosTest/**' ]
+  LongMethod:
+    active: true
+    excludes: [ '**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/jsTest/**', '**/iosTest/**' ]
+
+style:
+  ForbiddenComment:
+    values:
+      - 'FIXME:'
+      - 'STOPSHIP:'
+  MaxLineLength:
+    active: true
+    maxLineLength: 120
+    ignoreAnnotated: [ 'Test' ]

@@ -15,13 +15,15 @@
  */
 package com.afollestad.ulfberht.annotation
 
+import kotlin.annotation.AnnotationRetention.SOURCE
+import kotlin.annotation.AnnotationTarget.CLASS
+import kotlin.annotation.AnnotationTarget.FUNCTION
+
 /**
- * Marks a @Provides or @Binds function in a module - used to indicate that the module
- * should store the value until the module is destroyed. The same instance will be
- * returned with each injection until the destruction.
+ * TODO
  *
  * @author Aidan Follestad (@afollestad)
  */
-@Retention(AnnotationRetention.SOURCE)
-@Target(AnnotationTarget.FUNCTION)
+@Retention(SOURCE)
+@Target(FUNCTION, CLASS)
 annotation class Singleton

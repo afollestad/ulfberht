@@ -17,18 +17,15 @@
 
 package com.afollestad.ulfberht.annotation
 
+import kotlin.annotation.AnnotationRetention.RUNTIME
+import kotlin.annotation.AnnotationTarget.CLASS
 import kotlin.reflect.KClass
 
 /**
- * Marks an interface as a component that groups modules and provides instructions
- * for injecting into a target class.
+ * TODO
  *
  * @author Aidan Follestad (@afollestad)
  */
-@Retention(AnnotationRetention.RUNTIME)
-@Target(AnnotationTarget.CLASS)
-annotation class Component(
-  val scope: String = "",
-  val children: Array<KClass<*>> = [],
-  vararg val modules: KClass<*>
-)
+@Retention(RUNTIME)
+@Target(CLASS)
+annotation class Component(val scope: KClass<*> = Unit::class)

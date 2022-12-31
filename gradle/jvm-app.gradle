@@ -1,0 +1,7 @@
+apply from: rootProject.file("gradle/jvm-common.gradle")
+apply plugin: "application"
+
+java {
+  sourceCompatibility = JavaVersion.VERSION_1_8
+  targetCompatibility = JavaVersion.VERSION_1_8
+}

@@ -17,11 +17,14 @@
 
 package com.afollestad.ulfberht.annotation
 
+import kotlin.annotation.AnnotationRetention.SOURCE
+import kotlin.annotation.AnnotationTarget.FUNCTION
+
 /**
- * Marks a function in a @Module to bind the return type to a the method contents.
+ * TODO
  *
  * @author Aidan Follestad (@afollestad)
  */
-@Retention(AnnotationRetention.SOURCE)
-@Target(AnnotationTarget.FUNCTION)
+@Retention(SOURCE)
+@Target(FUNCTION)
 annotation class Provides

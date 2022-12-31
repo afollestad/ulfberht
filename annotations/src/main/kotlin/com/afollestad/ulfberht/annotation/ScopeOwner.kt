@@ -17,12 +17,16 @@
 
 package com.afollestad.ulfberht.annotation
 
+import kotlin.annotation.AnnotationRetention.SOURCE
+import kotlin.annotation.AnnotationTarget.CLASS
+import kotlin.reflect.KClass
+
 /**
- * Marks a class as a scope owner. The class must implement the LifecycleOwner interface as
+ * Marks a class as a scope owner. The class must implement the `LifecycleOwner  interface as
  * well, otherwise the build will fail.
  *
  * @author Aidan Follestad (@afollestad)
  */
-@Retention(AnnotationRetention.SOURCE)
-@Target(AnnotationTarget.CLASS)
-annotation class ScopeOwner(val name: String)
+@Retention(SOURCE)
+@Target(CLASS)
+annotation class ScopeOwner(val scope: KClass<*>)

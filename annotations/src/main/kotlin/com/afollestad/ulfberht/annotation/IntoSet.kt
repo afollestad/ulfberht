@@ -17,11 +17,14 @@
 
 package com.afollestad.ulfberht.annotation
 
+import kotlin.annotation.AnnotationRetention.SOURCE
+import kotlin.annotation.AnnotationTarget.FUNCTION
+
 /**
  * Marks a function in a @Module to put the return type into a set of like-typed objects.
  *
  * @author Aidan Follestad (@afollestad)
  */
-@Retention(AnnotationRetention.SOURCE)
-@Target(AnnotationTarget.FUNCTION)
+@Retention(SOURCE)
+@Target(FUNCTION)
 annotation class IntoSet

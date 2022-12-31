@@ -1,0 +1,23 @@
+apply plugin: "kotlin"
+
+apply from: rootProject.file("gradle/detekt-plugin.gradle")
+apply from: rootProject.file("gradle/ktlint-plugin.gradle")
+apply from: rootProject.file("dependencies.gradle")
+
+java {
+  sourceCompatibility = JavaVersion.VERSION_1_8
+  targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+sourceSets {
+  main {
+    kotlin.srcDirs += "src/main/kotlin"
+    kotlin.srcDirs += "build/generated/ksp/main/kotlin"
+    java.srcDirs += "src/main/kotlin"
+  }
+  test {
+    kotlin.srcDirs += "src/test/kotlin"
+    kotlin.srcDirs += "build/generated/ksp/test/kotlin"
+    java.srcDirs += "src/test/kotlin"
+  }
+}

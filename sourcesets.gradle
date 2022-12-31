@@ -1,9 +1,0 @@
-sourceSets {
-  main.kotlin.srcDirs += "src/main/kotlin"
-  main.java.srcDirs += "src/main/kotlin"
-  test.kotlin.srcDirs += "src/test/kotlin"
-  test.java.srcDirs += "src/test/kotlin"
-
-  main.kotlin.srcDirs += "build/generated/source/kapt/main"
-  main.java.srcDirs += "build/generated/source/kapt/main"
-}

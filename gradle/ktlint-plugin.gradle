@@ -1,0 +1,6 @@
+apply plugin: "org.jlleitschuh.gradle.ktlint"
+
+ktlint {
+  version = "0.44.0"
+  filter { exclude("**/generated/**") }
+}
