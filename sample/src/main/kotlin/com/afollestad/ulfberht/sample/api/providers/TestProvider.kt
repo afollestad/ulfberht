@@ -4,6 +4,7 @@ import com.afollestad.ulfberht.annotation.Provides
 import com.afollestad.ulfberht.annotation.Singleton
 import com.afollestad.ulfberht.sample.api.ApiCredentials
 import com.afollestad.ulfberht.sample.api.AuthTokens
+import com.afollestad.ulfberht.sample.api.qualifiers.ApiKey
 import com.afollestad.ulfberht.sample.api.qualifiers.AuthToken
 
 object TestProvider {
@@ -17,4 +18,7 @@ object TestProvider {
 
   @Provides @AuthToken
   fun provideAuthToken(authTokens: AuthTokens): String = authTokens.currentToken
+
+  @Provides @ApiKey
+  fun provideAuthToken(credentials: ApiCredentials): String = credentials.key
 }

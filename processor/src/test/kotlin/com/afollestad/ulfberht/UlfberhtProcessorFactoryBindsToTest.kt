@@ -36,7 +36,7 @@ class UlfberhtProcessorFactoryBindsToTest {
           fun doSomething()
         }
 
-        @BindsTo(AppScope::class)
+        @BindsTo(scope = AppScope::class)
         class RealClient : Client {
           override fun doSomething() = Unit
         }
@@ -79,7 +79,7 @@ class UlfberhtProcessorFactoryBindsToTest {
         }
 
         @TestQualifier
-        @BindsTo(AppScope::class)
+        @BindsTo(scope = AppScope::class)
         class RealClient : Client {
           override fun doSomething() = Unit
         }
@@ -126,7 +126,7 @@ class UlfberhtProcessorFactoryBindsToTest {
           fun doSomething()
         }
 
-        @BindsTo(AppScope::class)
+        @BindsTo(scope = AppScope::class)
         class RealClient(
           val authTokens: AuthTokens,
         ) : Client {
@@ -182,7 +182,7 @@ class UlfberhtProcessorFactoryBindsToTest {
           fun doSomething()
         }
 
-        @BindsTo(AppScope::class)
+        @BindsTo(scope = AppScope::class)
         class RealClient(
           @TestQualifier val authTokens: AuthTokens,
         ) : Client {
@@ -238,7 +238,7 @@ class UlfberhtProcessorFactoryBindsToTest {
           fun doSomething()
         }
 
-        @BindsTo(AppScope::class)
+        @BindsTo(scope = AppScope::class)
         class RealClient(
           val apiCredentials: ApiCredentials,
         ) : Client {
@@ -297,7 +297,7 @@ class UlfberhtProcessorFactoryBindsToTest {
           fun doSomething()
         }
 
-        @BindsTo(AppScope::class)
+        @BindsTo(scope = AppScope::class)
         class RealClient(
           @AuthToken val authToken: String,
         ) : Client {
@@ -367,7 +367,7 @@ class UlfberhtProcessorFactoryBindsToTest {
           fun doSomething()
         }
 
-        @BindsTo(AppScope::class)
+        @BindsTo(scope = AppScope::class)
         class RealClient(
           val authTokens: AuthTokens,
         ) : Client {
@@ -436,7 +436,7 @@ class UlfberhtProcessorFactoryBindsToTest {
           fun doSomething()
         }
 
-        @BindsTo(AppScope::class)
+        @BindsTo(scope = AppScope::class)
         class RealClient(
           @TestQualifier val authTokens: AuthTokens,
         ) : Client {
@@ -496,7 +496,7 @@ class UlfberhtProcessorFactoryBindsToTest {
           fun doSomething()
         }
 
-        @BindsTo(AppScope::class)
+        @BindsTo(scope = AppScope::class)
         class RealClient(val token: Token) : Client {
           override fun doSomething() { println(token) }
         }
@@ -554,7 +554,7 @@ class UlfberhtProcessorFactoryBindsToTest {
           fun doSomething()
         }
 
-        @BindsTo(AppScope::class)
+        @BindsTo(scope = AppScope::class)
         class RealClient(@Token val token: String) : Client {
           override fun doSomething() { println(token) }
         }
@@ -607,7 +607,7 @@ class UlfberhtProcessorFactoryBindsToTest {
           fun doSomething()
         }
 
-        @BindsTo(AppScope::class)
+        @BindsTo(scope = AppScope::class)
         class RealClient(
           val authTokens: AuthTokens,
         ) : Client {
@@ -648,7 +648,7 @@ class UlfberhtProcessorFactoryBindsToTest {
           fun doSomething()
         }
         
-        @BindsTo(AppScope::class)
+        @BindsTo(scope = AppScope::class)
         class RealClient(
           // Injected without the qualifier, so bindings don't match.
           val authTokens: AuthTokens,
@@ -680,7 +680,7 @@ class UlfberhtProcessorFactoryBindsToTest {
 
         import com.afollestad.ulfberht.annotation.BindsTo
 
-        @BindsTo(AppScope::class)
+        @BindsTo(scope = AppScope::class)
         interface Client {
           fun doSomething()
         }

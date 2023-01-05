@@ -11,7 +11,7 @@ interface Client {
 }
 
 @Singleton
-@BindsTo(AppScope::class)
+@BindsTo(scope = AppScope::class)
 class ClientImpl @Inject constructor(
   @AuthToken private val authToken: String,
 ) : Client {

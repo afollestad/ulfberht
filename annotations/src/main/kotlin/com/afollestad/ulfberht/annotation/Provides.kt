@@ -19,6 +19,7 @@ package com.afollestad.ulfberht.annotation
 
 import kotlin.annotation.AnnotationRetention.SOURCE
 import kotlin.annotation.AnnotationTarget.FUNCTION
+import kotlin.reflect.KClass
 
 /**
  * TODO
@@ -27,4 +28,6 @@ import kotlin.annotation.AnnotationTarget.FUNCTION
  */
 @Retention(SOURCE)
 @Target(FUNCTION)
-annotation class Provides
+annotation class Provides(
+  val scope: KClass<*> = Unit::class,
+)

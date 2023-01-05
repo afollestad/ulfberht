@@ -15,12 +15,24 @@
  */
 package com.afollestad.ulfberht.api
 
+import kotlin.reflect.KClass
+
 /**
  * TODO
  *
  * @author Aidan Follestad (afollestad)
  */
 interface ComponentImpl {
+
+  /**
+   * TODO
+   */
+  val scope: KClass<*>?
+
+  /**
+   * TODO
+   */
+  val parent: ComponentImpl?
 
   /**
    * TODO

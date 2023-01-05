@@ -25,6 +25,7 @@ import com.squareup.kotlinpoet.ClassName
  * @author Aidan Follestad (afollestad)
  */
 internal data class ComponentModel(
+  val parent: ClassName?,
   val scope: ClassName?,
   val className: ClassName,
   val members: List<ComponentMember>,

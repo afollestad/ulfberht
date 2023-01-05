@@ -75,7 +75,7 @@ internal fun BindingModel.toConstructorPropertySpec(): PropertySpec =
     .builder(
       name = factoryParameterName,
       type = factoryOrProviderClassName.parameterizedBy(providedKey.type),
-      modifiers = listOf(PRIVATE),
+      modifiers = setOf(PRIVATE),
     )
     .initializer(factoryParameterName)
     .build()

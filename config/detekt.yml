@@ -6,11 +6,11 @@ comments:
 
 complexity:
   LargeClass:
-    active: true
     excludes: [ '**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/jsTest/**', '**/iosTest/**' ]
   LongMethod:
-    active: true
     excludes: [ '**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/jsTest/**', '**/iosTest/**' ]
+  TooManyFunctions:
+    thresholdInClasses: 15
 
 style:
   ForbiddenComment:
@@ -18,6 +18,5 @@ style:
       - 'FIXME:'
       - 'STOPSHIP:'
   MaxLineLength:
-    active: true
     maxLineLength: 120
     ignoreAnnotated: [ 'Test' ]

@@ -11,7 +11,7 @@ interface AuthTokens {
 }
 
 @Singleton
-@BindsTo(LoggedInScope::class)
+@BindsTo(scope = LoggedInScope::class)
 class AuthTokensImpl @Inject constructor(
   private val apiCredentials: ApiCredentials,
 ) : AuthTokens {

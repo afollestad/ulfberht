@@ -29,6 +29,6 @@ import kotlin.reflect.KClass
 @Retention(SOURCE)
 @Target(CLASS)
 annotation class BindsTo(
-  val scope: KClass<*>,
   val boundType: KClass<*> = Unit::class,
+  val scope: KClass<*> = Unit::class,
 )

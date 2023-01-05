@@ -28,4 +28,7 @@ import kotlin.reflect.KClass
  */
 @Retention(RUNTIME)
 @Target(CLASS)
-annotation class Component(val scope: KClass<*> = Unit::class)
+annotation class Component(
+  val scope: KClass<*> = Unit::class,
+  val parent: KClass<*> = Unit::class,
+)

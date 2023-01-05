@@ -40,10 +40,13 @@ import com.squareup.kotlinpoet.ksp.toClassName
 @Throws(IllegalStateException::class)
 internal fun KSClassDeclaration.toComponentModel(): ComponentModel {
   val component = getAnnotationByType<Component>()
+  val parent = component.getKSTypeArgument("parent")
+    .takeUnless { it.isUnit }
   val scope = component.getKSTypeArgument("scope")
     .takeUnless { it.isUnit }
 
   return ComponentModel(
+    parent = parent?.toClassName(),
     scope = scope?.toClassName(),
     className = toClassName(),
     members = getAllFunctions()

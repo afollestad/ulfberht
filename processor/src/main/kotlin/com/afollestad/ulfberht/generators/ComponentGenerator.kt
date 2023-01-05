@@ -29,10 +29,12 @@ import com.afollestad.ulfberht.utilities.Names.CLASS_HEADER
 import com.afollestad.ulfberht.utilities.Names.COMPONENT_NAME_SUFFIX
 import com.afollestad.ulfberht.utilities.Types.COMPONENT_IMPL
 import com.afollestad.ulfberht.utilities.Types.FACTORY
+import com.afollestad.ulfberht.utilities.Types.KCLASS_OF_ANY
 import com.afollestad.ulfberht.utilities.Types.PROVIDER
 import com.afollestad.ulfberht.utilities.Types.PROVIDER_CREATOR
 import com.afollestad.ulfberht.utilities.Types.PROVIDER_SINGLETON_CREATOR
 import com.google.devtools.ksp.processing.CodeGenerator
+import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
@@ -85,24 +87,19 @@ internal class ComponentGenerator(
       .map { it.toPropertySpec() }
       .toList()
 
-    val destroyMethod = FunSpec.builder("destroy")
-      .addModifiers(OVERRIDE)
-      .addCode(
-        CodeBlock.builder().apply {
-          factoryBindings.forEach {
-            addStatement("%L.destroy()", it.factoryParameterName)
-          }
-        }.build(),
-      )
-      .build()
-
     val typeSpec = TypeSpec.classBuilder(componentSuffixedName)
       .addOriginatingKSFile(model.containingFile)
       .addKdoc(CLASS_HEADER)
       .addSuperinterface(COMPONENT_IMPL)
       .addSuperinterface(model.className)
+      .addProperty(model.toScopePropertySpec())
+      .addProperty(model.toParentPropertySpec())
+      .apply {
+        model.toConstructorFunSpec()?.let(::primaryConstructor)
+      }
       .addProperties(factoryPropertySpecs)
-      .addFunctions(model.members.map { it.toFunSpec() } + destroyMethod)
+      .addFunctions(model.members.map { it.toFunSpec() })
+      .addFunction(destroyFunSpec(factoryBindings))
       .build()
 
     val fileSpec = FileSpec.builder(pkg, componentSuffixedName)
@@ -155,6 +152,39 @@ internal class ComponentGenerator(
         .build()
     }
 
+  private fun ComponentModel.toConstructorFunSpec(): FunSpec? =
+    parent?.let {
+      FunSpec.constructorBuilder()
+        .addParameter("parent", it.asComponentClassName())
+        .build()
+    }
+
+  private fun ComponentModel.toParentPropertySpec(): PropertySpec =
+    PropertySpec
+      .builder(
+        name = "parent",
+        type = parent?.asComponentClassName() ?: COMPONENT_IMPL.copy(nullable = parent == null),
+        modifiers = setOf(OVERRIDE),
+      )
+      .initializer(if (parent != null) "parent" else "null")
+      .build()
+
+  private fun ComponentModel.toScopePropertySpec(): PropertySpec =
+    PropertySpec
+      .builder(
+        name = "scope",
+        type = KCLASS_OF_ANY.copy(nullable = scope == null),
+        modifiers = setOf(OVERRIDE),
+      )
+      .initializer(
+        if (scope != null) {
+          CodeBlock.of("%T::class", scope)
+        } else {
+          CodeBlock.of("null")
+        },
+      )
+      .build()
+
   private fun BindingModel.toPropertySpec(): PropertySpec =
     when (this) {
       is AssociationBinding,
@@ -197,7 +227,7 @@ internal class ComponentGenerator(
       .builder(
         name = factoryParameterName,
         type = FACTORY.parameterizedBy(providedKey.type),
-        modifiers = listOf(PRIVATE),
+        modifiers = setOf(PRIVATE),
       )
       .delegate(constructionCode)
       .build()
@@ -251,9 +281,24 @@ internal class ComponentGenerator(
       .builder(
         name = factoryParameterName,
         type = PROVIDER.parameterizedBy(providedKey.type),
-        modifiers = listOf(PRIVATE),
+        modifiers = setOf(PRIVATE),
       )
       .delegate(constructionCode)
       .build()
   }
+
+  private fun destroyFunSpec(factoryBindings: Sequence<BindingModel>): FunSpec =
+    FunSpec.builder("destroy")
+      .addModifiers(OVERRIDE)
+      .addCode(
+        CodeBlock.builder().apply {
+          factoryBindings.forEach {
+            addStatement("%L.destroy()", it.factoryParameterName)
+          }
+        }.build(),
+      )
+      .build()
+
+  private fun ClassName.asComponentClassName(): ClassName =
+    ClassName(packageName, simpleName + COMPONENT_NAME_SUFFIX)
 }

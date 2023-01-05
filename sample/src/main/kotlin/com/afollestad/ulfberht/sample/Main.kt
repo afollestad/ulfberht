@@ -18,14 +18,14 @@ package com.afollestad.ulfberht.sample
 import com.afollestad.ulfberht.annotation.Inject
 import com.afollestad.ulfberht.component
 import com.afollestad.ulfberht.sample.api.Client
-import com.afollestad.ulfberht.sample.api.components.OneComponent
+import com.afollestad.ulfberht.sample.api.components.AppComponent
 
 class Main {
   @Inject
   lateinit var client: Client
 
   init {
-    component<OneComponent>().inject(this)
+    component<AppComponent>().inject(this)
   }
 
   fun run() {
@@ -35,5 +35,4 @@ class Main {
 
 fun main() {
   Main().run()
-  component<OneComponent>().oneType().doSomething()
 }
